@@ -29,4 +29,25 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function profile()
+    {
+        return $this->hasOne(Profile::class);
+    }
+
+    public function pengaduans()
+    {
+        return $this->hasMany(Pengaduan::class);
+    }
+
+    public function isPemohon()
+    {
+        return $this->profile->role === 'pemohon';
+    }
+
+    public function isSeksi()
+    {
+        return $this->profile->role === 'seksi';
+    }
+
 }
