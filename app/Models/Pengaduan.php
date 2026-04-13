@@ -7,12 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Pengaduan extends Model
 {
     protected $fillable = [
-        'nomor_tiket',
-        'user_id',
-        'judul',
-        'deskripsi',
-        'status',
-        'seksi_tujuan'
+        'nama', 'tgl_pengaduan', 'nik', 'alamat', 'whatsapp', 
+        'jenis_layanan', 'seksi_tujuan', 'kanal_pengaduan', 
+        'bukti', 'status', 'deadline_tindak_lanjut', 'keterangan_admin'
     ];
 
     public function user()
