@@ -8,7 +8,7 @@ class Pengaduan extends Model
 {
     protected $fillable = [
         'nomor_tiket', 'nama', 'tgl_pengaduan', 'nik', 'alamat', 'whatsapp', 
-        'jenis_layanan', 'seksi_tujuan', 'kanal_pengaduan', 
+        'jenis_layanan', 'seksi_tujuan', 'kanal_pengaduan', 'aduan', // <-- Tambahkan aduan
         'bukti', 'status', 'deadline_tindak_lanjut', 'keterangan_admin'
     ];
 

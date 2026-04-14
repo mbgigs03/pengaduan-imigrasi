@@ -6,6 +6,7 @@ use App\Models\Pengaduan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str; // Tambahkan ini di atas
 use Carbon\Carbon;
 
 class PengaduanController extends Controller
@@ -54,21 +55,25 @@ class PengaduanController extends Controller
             'nik' => 'required|numeric|digits:16',
             'whatsapp' => 'required|string',
             'seksi_tujuan' => 'required',
-            'kanal' => 'required', // Nama di form
+            'kanal' => 'required',
+            'aduan' => 'required|string', 
             'bukti' => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
         ]);
 
-        // Kita petakan manual agar aman
         $pengaduan = new Pengaduan();
+        
+        // Generate Nomor Tiket Otomatis (Contoh: TIK-20260414-A8F2)
+        $pengaduan->nomor_tiket = 'TIK-' . date('Ymd') . '-' . strtoupper(Str::random(5));        
+        
         $pengaduan->nama = $request->nama;
         $pengaduan->nik = $request->nik;
         $pengaduan->alamat = $request->alamat;
         $pengaduan->whatsapp = $request->whatsapp;
         $pengaduan->jenis_layanan = $request->jenis_layanan;
         $pengaduan->seksi_tujuan = $request->seksi_tujuan;
-        $pengaduan->kanal_pengaduan = $request->kanal; // Memetakan 'kanal' ke 'kanal_pengaduan'
+        $pengaduan->kanal_pengaduan = $request->kanal; 
+        $pengaduan->aduan = $request->aduan; 
         
-        // Logika SLA Pak Lutfi
         $pengaduan->tgl_pengaduan = Carbon::now();
         $pengaduan->deadline_tindak_lanjut = Carbon::now()->addDays(3);
         $pengaduan->status = 'pending';
@@ -79,7 +84,11 @@ class PengaduanController extends Controller
 
         $pengaduan->save();
 
-        return redirect()->back()->with('success', 'Pengaduan berhasil terkirim!');
+        // Redirect ke halaman awal pembuka dengan membawa nomor tiket
+        return redirect()->route('pengaduan.landing')->with([
+            'success' => 'Pengaduan berhasil diajukan!',
+            'tiket' => $pengaduan->nomor_tiket
+        ]);
     }
 
     /**
@@ -97,5 +106,23 @@ class PengaduanController extends Controller
         ]);
 
         return back()->with('success', 'Status pengaduan diperbarui.');
+    }
+
+    public function track()
+    {
+        return view('pengaduan.track');
+    }
+
+    public function searchTrack(Request $request)
+    {
+        $request->validate([
+            'nomor_tiket' => 'required|string'
+        ]);
+
+        // Cari data berdasarkan nomor tiket
+        $pengaduan = Pengaduan::where('nomor_tiket', $request->nomor_tiket)->first();
+
+        // Kembalikan ke halaman track dengan membawa data hasil pencarian
+        return view('pengaduan.track', compact('pengaduan'));
     }
 }

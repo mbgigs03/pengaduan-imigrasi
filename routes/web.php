@@ -4,31 +4,44 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PengaduanController;
 
+/*
+|--------------------------------------------------------------------------
+| ROUTE PUBLIK (Tidak Perlu Login)
+|--------------------------------------------------------------------------
+*/
+
+// Halaman Landing (2 Tombol)
 Route::get('/', function () {
-    return view('welcome');
-});
+    return view('pengaduan.landing');
+})->name('pengaduan.landing');
 
-// Route::get('/dashboard', function () {
-//     return view('dashboard');
-// })->middleware(['auth', 'verified'])->name('dashboard');
+// Halaman Buat Aduan
+Route::get('/buat-aduan', [PengaduanController::class, 'create'])->name('pengaduan.create');
+Route::post('/buat-aduan', [PengaduanController::class, 'store'])->name('pengaduan.store');
 
-// Hapus atau comment route dashboard yang lama, ganti jadi ini:
-Route::get('/dashboard', [PengaduanController::class, 'index'])
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+// Halaman Cek Status Pengaduan
+Route::get('/cek-status', [PengaduanController::class, 'track'])->name('pengaduan.track');
+Route::post('/cek-status', [PengaduanController::class, 'searchTrack'])->name('pengaduan.searchTrack');
 
-Route::middleware('auth')->group(function () {
+
+/*
+|--------------------------------------------------------------------------
+| ROUTE ADMIN (Wajib Login)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    
+    // Dashboard Admin (Tabel Pengaduan)
+    Route::get('/dashboard', [PengaduanController::class, 'index'])->name('dashboard');
+    
+    // Update Status oleh Admin
+    Route::patch('/pengaduan/{pengaduan}/status', [PengaduanController::class, 'updateStatus'])->name('pengaduan.updateStatus');
+
+    // Profile Bawaan Breeze
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
-
-Route::middleware(['auth', 'verified'])->group(function () {
-    // Route untuk menampilkan form (Hanya GET)
-    Route::get('/pengaduan/create', [PengaduanController::class, 'create'])->name('pengaduan.create');
-
-    // Route untuk memproses data form (Hanya POST)
-    Route::post('/pengaduan/store', [PengaduanController::class, 'store'])->name('pengaduan.store');
 });
 
 require __DIR__.'/auth.php';
