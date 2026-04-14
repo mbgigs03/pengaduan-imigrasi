@@ -50,4 +50,9 @@ class User extends Authenticatable
         return $this->profile->role === 'seksi';
     }
 
+    public function isTikkim()
+    {
+        return $this->profile->role === 'tikkim';
+    }
+
 }

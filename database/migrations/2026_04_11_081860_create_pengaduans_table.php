@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('nama');
             $table->date('tgl_pengaduan');
+            $table->string('nomor_tiket');
             $table->string('nik', 16);
             $table->text('alamat');
             $table->string('whatsapp');
@@ -27,6 +28,9 @@ return new class extends Migration
             $table->text('keterangan_admin')->nullable();
             $table->timestamps();
         });
+        Schema::table('pengaduans', function (Blueprint $table) {
+        $table->unique('nomor_tiket');
+    });
     }
 
     /**

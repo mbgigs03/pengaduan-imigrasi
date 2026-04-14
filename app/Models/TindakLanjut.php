@@ -12,7 +12,7 @@ class TindakLanjut extends Model
         'tanggal_selesai'
     ];
     
-    public function pengaduan()
+    public function pengaduans()
     {
         return $this->belongsTo(Pengaduan::class);
     }
