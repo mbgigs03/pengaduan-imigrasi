@@ -26,6 +26,7 @@ return new class extends Migration
             $table->enum('status', ['pending', 'proses', 'diteruskan', 'selesai'])->default('pending');
             $table->dateTime('deadline_tindak_lanjut');
             $table->text('keterangan_admin')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamps();
         });
         Schema::table('pengaduans', function (Blueprint $table) {

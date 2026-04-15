@@ -1,47 +1,117 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PengaduanController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\TindakLanjutController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| ROUTE PUBLIK (Tidak Perlu Login)
+| PUBLIK — Bisa diakses tanpa login
 |--------------------------------------------------------------------------
 */
 
-// Halaman Landing (2 Tombol)
+// Halaman landing / form pengaduan publik
 Route::get('/', function () {
-    return view('pengaduan.landing');
+    return view('welcome');
 })->name('pengaduan.landing');
 
-// Halaman Buat Aduan
-Route::get('/buat-aduan', [PengaduanController::class, 'create'])->name('pengaduan.create');
-Route::post('/buat-aduan', [PengaduanController::class, 'store'])->name('pengaduan.store');
+// Form pengajuan pengaduan (guest)
+Route::get('/pengaduan/buat', [PengaduanController::class, 'create'])->name('pengaduan.create');
+Route::post('/pengaduan/buat', [PengaduanController::class, 'store'])->name('pengaduan.store');
 
-// Halaman Cek Status Pengaduan
-Route::get('/cek-status', [PengaduanController::class, 'track'])->name('pengaduan.track');
-Route::post('/cek-status', [PengaduanController::class, 'searchTrack'])->name('pengaduan.searchTrack');
-
+// Tracking nomor tiket (guest)
+Route::get('/pengaduan/track',  [PengaduanController::class, 'track'])->name('pengaduan.track');
+Route::post('/pengaduan/track', [PengaduanController::class, 'searchTrack'])->name('pengaduan.searchTrack');
 
 /*
 |--------------------------------------------------------------------------
-| ROUTE ADMIN (Wajib Login)
+| PRIVAT — Butuh login
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    
-    // Dashboard Admin (Tabel Pengaduan)
-    Route::get('/dashboard', [PengaduanController::class, 'index'])->name('dashboard');
-    
-    // Update Status oleh Admin
-    Route::patch('/pengaduan/{pengaduan}/status', [PengaduanController::class, 'updateStatus'])->name('pengaduan.updateStatus');
+Route::middleware('auth')->group(function () {
 
-    // Profile Bawaan Breeze
+    /*
+    |----------------------------------------------------------------------
+    | DASHBOARD — auto-redirect sesuai role (tikkim/seksi)
+    |----------------------------------------------------------------------
+    */
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::middleware('auth')->group(function () {
+        Route::post('/tindak-lanjut', [TindakLanjutController::class, 'store'])
+            ->name('tindaklanjut.store');
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | TIKKIM ONLY — Laporan, statistik global, semua seksi
+    |----------------------------------------------------------------------
+    */
+    Route::middleware('role:tikkim')->group(function () {
+        // Semua route TIKKIM sudah ditangani oleh DashboardController::tikkim()
+        // Tambahkan route eksklusif TIKKIM di sini jika diperlukan, contoh:
+        // Route::get('/laporan/export', [LaporanController::class, 'export'])->name('laporan.export');
+    });
+
+    /*
+|--------------------------------------------------------------------------
+| TIKKIM + SEKSI — Manajemen Tindak Lanjut
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:tikkim,seksi'])->group(function () {
+    
+    // 1. Simpan catatan tindak lanjut (bisa dipanggil terpisah atau bareng update status)
+    // Route::post('/pengaduan/{pengaduan}/tindak-lanjut', [TindakLanjutController::class, 'store'])
+    //     ->name('tindaklanjut.store');
+
+        // Simpan tindak lanjut baru (dari modal dashboard)
+    Route::post('/tindak-lanjut', [TindakLanjutController::class, 'store'])
+        ->name('tindak-lanjut.store');
+
+    // // 2. Lihat detail riwayat tindak lanjut (untuk modal history)
+    // Route::get('/pengaduan/{pengaduan}/history', [TindakLanjutController::class, 'history'])
+    //     ->name('tindaklanjut.history');
+
+        // Update tindak lanjut yang sudah ada
+    Route::put('/tindak-lanjut/{tindakLanjut}', [TindakLanjutController::class, 'update'])
+        ->name('tindak-lanjut.update');
+
+    // // 3. Upload bukti tindak lanjut (foto/dokumen jika diperlukan)
+    // Route::post('/pengaduan/{pengaduan}/upload-bukti', [TindakLanjutController::class, 'uploadBukti'])
+    //     ->name('tindaklanjut.upload');
+
+    // Hapus tindak lanjut (reset status ke pending)
+    Route::delete('/tindak-lanjut/{tindakLanjut}', [TindakLanjutController::class, 'destroy'])
+        ->name('tindak-lanjut.destroy');
+});
+
+/*
+|--------------------------------------------------------------------------
+| KHUSUS TIKKIM — Manajemen/Moderasi Tindak Lanjut
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:tikkim'])->group(function () {
+    
+    // TIKKIM bisa menghapus atau mengedit catatan jika ada kesalahan input
+    Route::delete('/tindak-lanjut/{tindakLanjut}', [TindakLanjutController::class, 'destroy'])
+        ->name('tindaklanjut.destroy');
+});
+
+    /*
+    |----------------------------------------------------------------------
+    | PROFILE
+    |----------------------------------------------------------------------
+    */
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__.'/auth.php';
+/*
+|--------------------------------------------------------------------------
+| AUTH ROUTES (login, register, dll) — dari Laravel Breeze
+|--------------------------------------------------------------------------
+*/
+require __DIR__ . '/auth.php';

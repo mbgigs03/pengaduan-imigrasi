@@ -86,12 +86,12 @@
                         <x-input-label for="seksi_tujuan" :value="__('Kategori Pengaduan (Seksi Tujuan)')" />
                         <select name="seksi_tujuan" class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm" required>
                             <option value="">-- Pilih Kategori --</option>
-                            <option value="paspor">Pelayanan Paspor (Tikkim)</option>
-                            <option value="dokumen_perjalanan">[WNI] Dokumen Perjalanan (Doklanintal)</option>
-                            <option value="intal">[WNA] Pelayanan Izin Tinggal (Doklanintal)</option>
-                            <option value="pengawasan">[WNA] Pengawasan Orang Asing (Inteldak)</option>
-                            <option value="alur_bap">Alur BAP (Inteldak)</option>
-                            <option value="sarpras">Sarana Prasarana (Tata Usaha)</option>
+                            <option value="Tikkim">Pelayanan Paspor (Tikkim)</option>
+                            <option value="Doklanintalkim">[WNI] Dokumen Perjalanan (Doklanintal)</option>
+                            <option value="Doklanintalkim">[WNA] Pelayanan Izin Tinggal (Doklanintal)</option>
+                            <option value="Inteldakim">[WNA] Pengawasan Orang Asing (Inteldak)</option>
+                            <option value="Inteldakim">Alur BAP (Inteldak)</option>
+                            <option value="Tata Usaha">Sarana Prasarana (Tata Usaha)</option>
                         </select>
                     </div>
                 </div>

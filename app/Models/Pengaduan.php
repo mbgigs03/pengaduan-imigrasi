@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Pengaduan extends Model
 {
+    protected $guarded = ['id'];
     protected $fillable = [
         'nomor_tiket', 'nama', 'tgl_pengaduan', 'nik', 'alamat', 'whatsapp', 
         'jenis_layanan', 'seksi_tujuan', 'kanal_pengaduan', 'aduan', // <-- Tambahkan aduan
@@ -19,7 +20,7 @@ class Pengaduan extends Model
 
     public function tindakLanjut()
     {
-        return $this->hasOne(TindakLanjut::class);
+        return $this->hasOne(TindakLanjut::class, 'pengaduan_id');
     }
     
     public function pemohon()
