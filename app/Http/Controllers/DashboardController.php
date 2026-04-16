@@ -40,57 +40,84 @@ class DashboardController extends Controller
     private function tikkim()
     {
         $now = Carbon::now();
-
+ 
         // === STATISTIK GLOBAL ===
         $totalBulanIni = Pengaduan::whereMonth('tgl_pengaduan', $now->month)
             ->whereYear('tgl_pengaduan', $now->year)
             ->count();
-
+ 
         $selesai = Pengaduan::where('status', 'selesai')
             ->whereMonth('tgl_pengaduan', $now->month)
             ->whereYear('tgl_pengaduan', $now->year)
             ->count();
-
+ 
         $slaOver = Pengaduan::where('status', '!=', 'selesai')
             ->where('deadline_tindak_lanjut', '<', $now)
             ->count();
-
+ 
         $slaHMinus1 = Pengaduan::where('status', '!=', 'selesai')
             ->whereBetween('deadline_tindak_lanjut', [$now, $now->copy()->addDay()])
             ->count();
-
-        // === PERFORMA PER SEKSI ===
-        $seksiList = ['Tikkim', 'Inteldakim', 'Doklanintalkim', 'Tata Usaha'];
-
+ 
+        // === PERFORMA PER SEKSI (termasuk breakdown per status untuk stacked chart) ===
+        $seksiList = [
+            'Tikkim',
+            'Doklanintal',
+            'Inteldakim',
+            'Tata Usaha',
+        ];
+ 
         $performaSeksi = collect($seksiList)->map(function ($seksi) use ($now) {
-            $total   = Pengaduan::where('seksi_tujuan', $seksi)->whereMonth('tgl_pengaduan', $now->month)->count();
-            $selesai = Pengaduan::where('seksi_tujuan', $seksi)->where('status', 'selesai')->whereMonth('tgl_pengaduan', $now->month)->count();
-            // Perbaikan typo: use($now) agar bisa panggil Carbon::now() atau $now
-            $slaOver = Pengaduan::where('seksi_tujuan', $seksi)->where('status', '!=', 'selesai')->where('deadline_tindak_lanjut', '<', $now)->count();
-
+            $base = Pengaduan::where('seksi_tujuan', $seksi)
+                ->whereMonth('tgl_pengaduan', $now->month)
+                ->whereYear('tgl_pengaduan', $now->year);
+ 
+            $total      = (clone $base)->count();
+            $selesai    = (clone $base)->where('status', 'selesai')->count();
+            $proses     = (clone $base)->where('status', 'proses')->count();
+            $pending    = (clone $base)->where('status', 'pending')->count();
+            $diteruskan = (clone $base)->where('status', 'diteruskan')->count();
+            $slaOver    = Pengaduan::where('seksi_tujuan', $seksi)
+                ->where('status', '!=', 'selesai')
+                ->where('deadline_tindak_lanjut', '<', now())
+                ->count();
+ 
             return [
-                'nama'     => $seksi,
-                'total'    => $total,
-                'selesai'  => $selesai,
-                'sla_over' => $slaOver,
-                'pct'      => $total > 0 ? round($selesai / $total * 100) : 0,
+                'nama'       => $seksi,
+                'total'      => $total,
+                'selesai'    => $selesai,
+                'proses'     => $proses,
+                'pending'    => $pending,
+                'diteruskan' => $diteruskan,
+                'sla_over'   => $slaOver,
+                'pct'        => $total > 0 ? round($selesai / $total * 100) : 0,
             ];
-        });
-
-        // === SEBARAN KANAL & STATUS ===
-        $kanalStats = Pengaduan::selectRaw('kanal_pengaduan, COUNT(*) as jumlah')->groupBy('kanal_pengaduan')->get();
-        $statusStats = Pengaduan::selectRaw('status, COUNT(*) as jumlah')->groupBy('status')->get();
-
-        $laporanSla = Pengaduan::where('status', '!=', 'selesai')
+        })->filter(fn($s) => $s['total'] > 0); // hanya tampilkan seksi yang ada datanya
+ 
+        // === SEBARAN KANAL ===
+        $kanalStats = Pengaduan::selectRaw('kanal_pengaduan, COUNT(*) as jumlah')
+            ->groupBy('kanal_pengaduan')
+            ->orderByDesc('jumlah')
+            ->get();
+ 
+        // === SEBARAN STATUS ===
+        $statusStats = Pengaduan::selectRaw('status, COUNT(*) as jumlah')
+            ->groupBy('status')
+            ->get();
+ 
+        // === LAPORAN SLA (belum selesai, urut deadline) ===
+        $laporanSla = Pengaduan::with('tindakLanjut')
+            ->where('status', '!=', 'selesai')
             ->orderBy('deadline_tindak_lanjut')
             ->get()
             ->map(function ($p) {
                 $p->sla_status = $this->hitungSlaStatus($p->deadline_tindak_lanjut);
                 return $p;
             });
-
-        $pengaduans = Pengaduan::latest()->paginate(15);
-
+ 
+        // === SEMUA PENGADUAN (paginate) ===
+        $pengaduans = Pengaduan::with('tindakLanjut')->latest()->paginate(15);
+ 
         return view('dashboard.tikkim', compact(
             'totalBulanIni', 'selesai', 'slaOver', 'slaHMinus1',
             'performaSeksi', 'kanalStats', 'statusStats',

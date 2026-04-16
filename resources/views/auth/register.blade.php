@@ -195,12 +195,12 @@
                     <select name="seksi" id="seksi-select"
                         class="input-field @error('seksi') error @enderror">
                         <option value="">-- Pilih seksi Anda --</option>
-                        <option value="Paspor"                   {{ old('seksi') == 'Paspor' ? 'selected' : '' }}>Pelayanan Paspor (Tikkim)</option>
-                        <option value="Dokumen Perjalanan"       {{ old('seksi') == 'Dokumen Perjalanan' ? 'selected' : '' }}>[WNI] Dokumen Perjalanan (Doklanintal)</option>
-                        <option value="Izin Tinggal"             {{ old('seksi') == 'Izin Tinggal' ? 'selected' : '' }}>[WNA] Izin Tinggal (Doklanintal)</option>
-                        <option value="Pengawasan Orang Asing"   {{ old('seksi') == 'Pengawasan Orang Asing' ? 'selected' : '' }}>[WNA] Pengawasan (Inteldak)</option>
-                        <option value="Alur BAP"                 {{ old('seksi') == 'Alur BAP' ? 'selected' : '' }}>Alur BAP (Inteldak)</option>
-                        <option value="Tata Usaha"               {{ old('seksi') == 'Tata Usaha' ? 'selected' : '' }}>Sarana Prasarana (Tata Usaha)</option>
+                        <option value="Tikkim"{{ old('seksi') == 'Tikkim' ? 'selected' : '' }}>Pelayanan Paspor (Tikkim)</option>
+                        <option value="Doklanintalkim"{{ old('seksi') == 'Doklanintalkim' ? 'selected' : '' }}>[WNI] Dokumen Perjalanan (Doklanintal)</option>
+                        <option value="Doklanintalkim"{{ old('seksi') == 'Doklanintalkim' ? 'selected' : '' }}>[WNA] Izin Tinggal (Doklanintal)</option>
+                        <option value="inteldakim"   {{ old('seksi') == 'inteldakim' ? 'selected' : '' }}>[WNA] Pengawasan (Inteldak)</option>
+                        <option value="inteldakim"   {{ old('seksi') == 'inteldakim' ? 'selected' : '' }}>Alur BAP (Inteldak)</option>
+                        <option value="Tata Usaha"   {{ old('seksi') == 'Tata Usaha' ? 'selected' : '' }}>Sarana Prasarana (Tata Usaha)</option>
                     </select>
                     @error('seksi') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
