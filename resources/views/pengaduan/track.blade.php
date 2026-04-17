@@ -192,6 +192,16 @@
                             @endforeach
                         </div>
                     </div>
+                    {{-- UNDUH PDF Pemohon --}}
+                    @if ($pengaduan->pdf_url)
+                        <a href="{{ $pengaduan->pdf_url }}" target="_blank"
+                            class="inline-flex items-center gap-2 text-sm px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl hover:bg-blue-100 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Unduh Bukti Pengaduan (PDF)
+                        </a>
+                    @endif
 
                     {{-- TANGGAPAN ADMIN --}}
                     <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
@@ -204,6 +214,7 @@
                                 Diselesaikan:
                                 {{ \Carbon\Carbon::parse($pengaduan->tindakLanjut->tanggal_selesai)->translatedFormat('d F Y, H:i') }}
                             </div>
+        
                         @endif
                     </div>
                 </div>
@@ -217,6 +228,7 @@
             </div>
         @endif
 
+        
     </div>
 
 </body>

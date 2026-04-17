@@ -25,6 +25,10 @@ Route::post('/pengaduan/buat', [PengaduanController::class, 'store'])->name('pen
 Route::get('/pengaduan/track',  [PengaduanController::class, 'track'])->name('pengaduan.track');
 Route::post('/pengaduan/track', [PengaduanController::class, 'searchTrack'])->name('pengaduan.searchTrack');
 
+// Download/lihat PDF pengaduan
+Route::get('/pengaduan/{nomorTiket}/pdf', [PengaduanController::class, 'downloadPdf'])
+    ->name('pengaduan.pdf');
+
 /*
 |--------------------------------------------------------------------------
 | PRIVAT — Butuh login
