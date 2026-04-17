@@ -137,27 +137,114 @@
                         <tbody>
                             @forelse ($laporanSla as $p)
                                 @php
-                                    $dotColor = match($p->sla_status){'over'=>'bg-red-400','warn'=>'bg-amber-400',default=>'bg-green-400'};
-                                    $tlId     = optional($p->tindakLanjut)->id;
+                                    // Meta SLA (UI + label + warna)
+                                    $slaMeta = match($p->sla_status) {
+                                        'over' => [
+                                            'label' => 'Terlambat',
+                                            'dot'   => 'bg-red-500',
+                                            'pill'  => 'bg-red-100 text-red-700',
+                                            'shadow'=> 'shadow-[0_0_8px_rgba(239,68,68,0.4)]'
+                                        ],
+                                        'warn' => [
+                                            'label' => 'H-1 Deadline',
+                                            'dot'   => 'bg-amber-500',
+                                            'pill'  => 'bg-amber-100 text-amber-700',
+                                            'shadow'=> ''
+                                        ],
+                                        default => [
+                                            'label' => 'On Track',
+                                            'dot'   => 'bg-green-500',
+                                            'pill'  => 'bg-green-100 text-green-700',
+                                            'shadow'=> ''
+                                        ],
+                                    };
+
+                                    // Cek apakah sudah ada tindak lanjut
+                                    $tlId = optional($p->tindakLanjut)->id;
                                 @endphp
-                                <tr class="border-b border-gray-50 hover:bg-gray-50">
-                                    <td class="py-2 px-3 text-xs text-gray-500">
-                                        <span class="w-2 h-2 rounded-full {{ $dotColor }} inline-block mr-1"></span>{{ $p->nomor_tiket }}
+
+                                <tr class="border-b border-gray-50 hover:bg-gray-50 transition">
+                                    
+                                    {{-- Nomor Tiket + Indicator --}}
+                                    <td class="py-3 px-3">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-2.5 h-2.5 rounded-full {{ $slaMeta['dot'] }} 
+                                                {{ $p->sla_status === 'over' ? 'animate-pulse' : '' }} 
+                                                {{ $slaMeta['shadow'] }}">
+                                            </span>
+                                            <span class="text-xs font-mono text-gray-600">
+                                                {{ $p->nomor_tiket }}
+                                            </span>
+                                        </div>
                                     </td>
-                                    <td class="py-2 px-3 font-medium text-gray-800">{{ $p->nama }}</td>
-                                    <td class="py-2 px-3 text-xs text-gray-500">{{ $p->seksi_tujuan }}</td>
-                                    <td class="py-2 px-3 text-xs text-gray-500 max-w-xs truncate">{{ Str::limit($p->aduan, 40) }}</td>
-                                    <td class="py-2 px-3"><x-status-pill :status="$p->status" /></td>
-                                    <td class="py-2 px-3 text-xs text-gray-500">{{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->format('d M Y') }}</td>
-                                    <td class="py-2 px-3">
-                                        <button onclick="openModalTL('{{ $p->id }}','{{ $p->nomor_tiket }}','{{ addslashes($p->nama) }}','{{ $p->status }}','{{ addslashes($p->keterangan_admin ?? '') }}','{{ $tlId }}')"
-                                            class="text-xs px-3 py-1.5 rounded-lg font-medium transition {{ $tlId ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100' : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100' }}">
+
+                                    {{-- Nama --}}
+                                    <td class="py-3 px-3 font-semibold text-gray-800">
+                                        {{ $p->nama }}
+                                    </td>
+
+                                    {{-- Seksi --}}
+                                    <td class="py-3 px-3 text-xs text-gray-500 uppercase">
+                                        {{ $p->seksi_tujuan }}
+                                    </td>
+
+                                    {{-- Aduan --}}
+                                    <td class="py-3 px-3 text-xs text-gray-500 max-w-xs truncate" title="{{ $p->aduan }}">
+                                        {{ Str::limit($p->aduan, 45) }}
+                                    </td>
+
+                                    {{-- Status + SLA --}}
+                                    <td class="py-3 px-3">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <x-status-pill :status="$p->status" />
+                                        </div>
+                                    </td>
+
+                                    {{-- Deadline --}}
+                                    <td class="py-3 px-3">
+                                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $slaMeta['pill'] }}">
+                                            {{ $slaMeta['label'] }}
+                                        </span>
+                                        <div class="text-xs {{ $p->sla_status === 'over' ? 'text-red-600 font-bold' : 'text-gray-600' }}">
+                                            {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->format('d M Y') }}
+                                        </div>
+                                        <div class="text-[9px] text-gray-400">
+                                            {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->diffForHumans() }}
+                                        </div>
+                                    </td>
+
+                                    {{-- Action --}}
+                                    <td class="py-3 px-3 text-right">
+                                        <button
+                                            onclick="openModalTL(
+                                                '{{ $p->id }}',
+                                                '{{ $p->nomor_tiket }}',
+                                                '{{ addslashes($p->nama) }}',
+                                                '{{ $p->status }}',
+                                                '{{ addslashes($p->keterangan_admin ?? '') }}',
+                                                '{{ $tlId }}'
+                                            )"
+                                            class="text-xs px-3 py-1.5 rounded-lg font-bold transition shadow-sm
+                                            {{ $tlId 
+                                                ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100' 
+                                                : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100' }}">
+                                            
                                             {{ $tlId ? 'Edit TL' : 'Tindak Lanjut' }}
                                         </button>
                                     </td>
                                 </tr>
+
                             @empty
-                                <tr><td colspan="7" class="py-8 text-center text-gray-400 text-sm">Semua pengaduan dalam batas SLA 🎉</td></tr>
+                                <tr>
+                                    <td colspan="7" class="py-12 text-center">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <span class="text-3xl">🛡️</span>
+                                            <p class="mt-2 text-sm text-gray-400 font-medium">
+                                                Sistem Aman. Semua pengaduan berjalan sesuai timeline.
+                                            </p>
+                                        </div>
+                                    </td>
+                                </tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -179,7 +266,7 @@
                         <tbody>
                             @forelse ($pengaduans as $p)
                                 @php $tlId = optional($p->tindakLanjut)->id; @endphp
-                                <tr class="border-b border-gray-50 hover:bg-gray-50">
+                                <tr>
                                     <td class="py-2 px-3 text-xs text-gray-500">{{ $p->nomor_tiket }}</td>
                                     <td class="py-2 px-3">
                                         <div class="font-medium text-gray-800">{{ $p->nama }}</div>
