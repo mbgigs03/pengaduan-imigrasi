@@ -53,13 +53,27 @@ class Pengaduan extends Model
 
     // ── Auto-generate nomor tiket saat creating ──────────────
     protected static function booted(): void
-    {
-        static::creating(function ($pengaduan) {
-            $today      = now()->format('Ymd');
-            $lastTicket = static::whereDate('created_at', now())->latest()->first();
-            $sequence   = $lastTicket ? ((int) substr($lastTicket->nomor_tiket, -3)) + 1 : 1;
+{
+    static::creating(function ($pengaduan) {
+        $today = now()->format('Ymd');
+        
+        // Ambil data terakhir khusus hari ini
+        $lastTicket = static::whereDate('created_at', now())->latest('id')->first();
+        
+        if ($lastTicket) {
+            // Ambil 3 angka terakhir, contoh: IMI-20260417-007 -> ambil 007
+            $lastSequence = (int) substr($lastTicket->nomor_tiket, -3);
+            $sequence = $lastSequence + 1;
+        } else {
+            $sequence = 1;
+        }
 
-            $pengaduan->nomor_tiket = 'IMI-' . $today . '-' . str_pad($sequence, 3, '0', STR_PAD_LEFT);
-        });
-    }
+        // Format: IMI-20260417-007-XXXX (XXXX adalah random string agar tidak Unique Violation)
+        // Atau jika ingin tetap 007, tambahkan pengecekan loop
+        $pengaduan->nomor_tiket = 'IMI-' . $today . '-' . str_pad($sequence, 3, '0', STR_PAD_LEFT);
+        
+        // OPTIONAL: Jika ingin SANGAT AMAN dari error duplicate, tambahkan suffix random
+        // $pengaduan->nomor_tiket .= '-' . strtoupper(Str::random(3));
+    });
+}
 }
