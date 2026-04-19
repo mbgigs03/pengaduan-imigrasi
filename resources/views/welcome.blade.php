@@ -173,23 +173,90 @@
     {{-- SWEETALERT TIKET --}}
     @if (session('tiket'))
     <script>
+        let timerInterval;
+        let secondsLeft = 10;
+
         Swal.fire({
-            title: 'Aduan Berhasil Dikirim!',
+            title: 'Berhasil!',
             html: `
-                <p class="text-gray-600 mb-4">Aduan Anda telah diterima dan sedang diproses.</p>
-                <div class="my-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                    <small class="text-gray-500 block mb-1">Nomor Tiket Anda:</small>
-                    <div class="text-2xl font-extrabold text-blue-700 tracking-widest">{{ session('tiket') }}</div>
+                <p class="mb-2">Aduan Anda telah diterima.</p>
+                
+                <div class="my-4 p-4 bg-gray-100 rounded-xl border border-blue-200 relative group">
+                    <small class="text-gray-500 uppercase font-semibold text-[10px] tracking-wider">Nomor Tiket Anda:</small>
+                    <div id="no-tiket" class="text-3xl font-bold text-blue-600 tracking-widest my-1">{{ session('tiket') }}</div>
+                    
+                    <button onclick="copyTicket()" id="btn-copy" 
+                        class="mt-2 inline-flex items-center px-3 py-1 bg-white border border-blue-600 text-blue-600 text-xs font-bold rounded-lg hover:bg-blue-600 hover:text-white transition-all active:scale-95">
+                        <span id="copy-icon" class="mr-1">📋</span> 
+                        <span id="copy-text">Salin Nomor Tiket</span>
+                    </button>
                 </div>
-                <p class="text-sm text-red-600 font-semibold">⚠️ Simpan nomor ini untuk mengecek status aduan!</p>
+                
+                <div class="p-3 bg-emerald-50 border border-emerald-100 rounded-lg mb-4">
+                    <p class="text-sm text-emerald-800 font-medium">
+                        📍 <strong>Estimasi:</strong> 3 Hari Kerja
+                    </p>
+                </div>
+
+                <p class="text-sm text-red-600 font-bold italic">
+                    ⚠️ Wajib: Simpan/Catat nomor tiket ini!
+                </p>
+                
+                <p class="mt-4 text-[10px] text-gray-400">
+                    Tombol lanjut aktif dalam <b id="countdown-text" class="text-blue-600">10</b> detik...
+                </p>
             `,
             icon: 'success',
-            confirmButtonText: 'Oke, sudah saya catat',
-            confirmButtonColor: '#1d4ed8',
-            customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-xl' }
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            confirmButtonText: 'Oke, Saya Paham (10)',
+            confirmButtonColor: '#2563eb',
+            didOpen: () => {
+                const b = Swal.getConfirmButton();
+                b.disabled = true;
+
+                timerInterval = setInterval(() => {
+                    secondsLeft--;
+                    const content = Swal.getHtmlContainer().querySelector('#countdown-text');
+                    if (content) content.textContent = secondsLeft;
+                    b.textContent = `Oke, Saya Paham (${secondsLeft})`;
+
+                    if (secondsLeft <= 0) {
+                        clearInterval(timerInterval);
+                        b.disabled = false;
+                        b.textContent = 'Oke, Saya Paham';
+                    }
+                }, 1000);
+            },
+            willClose: () => {
+                clearInterval(timerInterval);
+            }
         });
+
+        // Fungsi Salin Nomor Tiket
+        function copyTicket() {
+            const text = document.getElementById('no-tiket').innerText;
+            const btnText = document.getElementById('copy-text');
+            const btnIcon = document.getElementById('copy-icon');
+
+            navigator.clipboard.writeText(text).then(() => {
+                // Efek visual saat berhasil copy
+                btnText.innerText = 'Tersalin!';
+                btnIcon.innerText = '✅';
+                document.getElementById('btn-copy').classList.add('bg-blue-600', 'text-white');
+                
+                // Kembalikan ke asal setelah 2 detik
+                setTimeout(() => {
+                    btnText.innerText = 'Salin Nomor Tiket';
+                    btnIcon.innerText = '📋';
+                    document.getElementById('btn-copy').classList.remove('bg-blue-600', 'text-white');
+                }, 2000);
+            }).catch(err => {
+                console.error('Gagal menyalin: ', err);
+            });
+        }
     </script>
-    @endif
+@endif
 
 </body>
 </html>

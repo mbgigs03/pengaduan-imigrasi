@@ -263,14 +263,14 @@ body {
 
 .kop-logo {
     display: table-cell;
-    width: 85px;
+    width: 90px;
     vertical-align: middle;
     text-align: center;
 }
 
 .kop-logo img {
-    max-width: 85px;
-    max-height: 85px;
+    max-width: 90px;
+    max-height: 90px;
 }
 
 .kop-teks {
@@ -331,7 +331,7 @@ body {
 </div>
 
 <div class="judul">
-    <h2>FORMULIR PENGADUAN <br>LAYANAN KEIMIGRASIAN</h2>
+    <h3>FORMULIR PENGADUAN <br>LAYANAN KEIMIGRASIAN</h3>
 </div>
 
 <div style="margin-bottom: 15px;">
@@ -347,8 +347,7 @@ body {
     <tr><td class="lbl">Nomor WhatsApp</td><td class="sep">:</td><td>{$noWa}</td></tr>
     
     <tr><td class="lbl">Sasaran Pengaduan</td><td class="sep">:</td><td><strong>{$sasaranTeks}</strong></td></tr>
-
-    <tr><td colspan="3" style="padding-top:15px;">Deskripsi Pengaduan :</td></tr>
+    <tr><td class="lbl">Deskripsi Pengaduan</td><td class="sep">:</td></tr>
     <tr>
         <td colspan="3">
             <div class="kotak-aduan">
