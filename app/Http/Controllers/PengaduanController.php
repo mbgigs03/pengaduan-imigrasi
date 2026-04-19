@@ -31,7 +31,7 @@ class PengaduanController extends Controller
             'seksi_tujuan' => 'required|string',
             'kanal'        => 'required|string',
             'aduan'        => 'required|string',
-            'bukti'        => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
+            'bukti'        => 'nullable|image|mimes:jpg,png,jpeg|max:10240',
         ]);
 
         // ── Simpan data ke database ──────────────────────────
@@ -50,7 +50,11 @@ class PengaduanController extends Controller
         $pengaduan->status            = 'pending';
 
         if ($request->hasFile('bukti')) {
-            $pengaduan->bukti = $request->file('bukti')->store('bukti-pengaduan', 'public');
+            $file = $request->file('bukti');
+        
+            $path = Storage::disk('supabase')->put('pengaduan', $file);
+        
+            $pengaduan->bukti = Storage::disk('supabase')->url($path);
         }
 
         $pengaduan->save(); // nomor_tiket di-generate via model booted()
