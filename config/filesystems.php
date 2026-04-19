@@ -61,18 +61,17 @@ return [
         ],    
 
         'supabase' => [
-            'driver'                  => 's3',
-            'key'                     => env('SUPABASE_ACCESS_KEY_ID'),
-            'secret'                  => env('SUPABASE_SECRET_ACCESS_KEY'),
-            'region'                  => env('SUPABASE_DEFAULT_REGION'),
-            'bucket'                  => env('SUPABASE_BUCKET'),
-            'endpoint'                => env('SUPABASE_ENDPOINT'),
+            'driver' => 's3',
+            'key'    => env('SUPABASE_ACCESS_KEY_ID'),
+            'secret' => env('SUPABASE_SECRET_ACCESS_KEY'),
+            'region' => env('SUPABASE_DEFAULT_REGION', 'ap-southeast-1'),
+            'bucket' => env('SUPABASE_BUCKET', 'pengaduan'),
+            'endpoint' => env('SUPABASE_ENDPOINT'),
             'use_path_style_endpoint' => true,
-            'visibility'              => 'public',
-            'throw'                   => true, // lempar exception jika upload gagal
+            'visibility' => 'public',
+            'throw' => true,
         ],
-
-],
+    ],
 
     /*
     |--------------------------------------------------------------------------

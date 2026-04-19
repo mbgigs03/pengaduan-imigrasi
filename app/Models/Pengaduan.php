@@ -53,6 +53,7 @@ class Pengaduan extends Model
 
     // ── Auto-generate nomor tiket saat creating ──────────────
     protected static function booted(): void
+
     {
         static::creating(function ($pengaduan) {
             $today = now()->format('Ymd');
