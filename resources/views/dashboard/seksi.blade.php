@@ -88,37 +88,75 @@
                         </thead>
                         <tbody>
                             @forelse ($pengaduans as $p)
+
                                 @php
                                     $dotColor = match($p->sla_status) {
                                         'over'  => 'bg-red-400',
                                         'warn'  => 'bg-amber-400',
                                         default => 'bg-green-400',
                                     };
-                                    // ID tindak lanjut jika sudah ada, null jika belum
+
+                                    $rowBg = match($p->sla_status) {
+                                        'over'  => 'bg-red-50/40',
+                                        'warn'  => 'bg-amber-50/40',
+                                        default => '',
+                                    };
+
                                     $tlId = optional($p->tindakLanjut)->id;
                                 @endphp
-                                <tr class="border-b border-gray-50 hover:bg-gray-50">
-                                    <td class="py-2 px-3 text-xs text-gray-500">
-                                        <span class="w-2 h-2 rounded-full {{ $dotColor }} inline-block mr-1"></span>
-                                        {{ $p->nomor_tiket }}
+
+                                <tr class="border-b border-gray-50 hover:bg-gray-50 {{ $rowBg }}">
+                                    
+                                    {{-- TIKET + DOT --}}
+                                    <td class="py-2 px-3">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-2.5 h-2.5 rounded-full {{ $dotColor }}
+                                                {{ $p->sla_status === 'over' ? 'animate-pulse' : '' }}">
+                                            </span>
+
+                                            <span class="text-xs font-mono text-gray-600">
+                                                {{ $p->nomor_tiket }}
+                                            </span>
+                                        </div>
                                     </td>
-                                    <td class="py-2 px-3 font-medium text-gray-800">{{ $p->nama }}</td>
-                                    <td class="py-2 px-3 text-gray-500 max-w-xs truncate">
-                                        {{ Str::limit($p->aduan, 50) }}
+
+                                    {{-- NAMA --}}
+                                    <td class="py-2 px-3 font-medium text-gray-800">
+                                        {{ $p->nama }}
                                     </td>
-                                    <td class="py-2 px-3 text-gray-500 text-xs">{{ $p->kanal_pengaduan }}</td>
+
+                                    {{-- ADUAN --}}
+                                    <td class="py-2 px-3">
+                                        <a href="{{ route('pengaduan.show', $p->id) }}"
+                                        class="text-xs px-3 py-1.5 rounded-lg font-medium 
+                                                bg-indigo-50 text-indigo-700 border border-indigo-200 
+                                                hover:bg-indigo-100 transition">
+                                            Detail
+                                        </a>
+                                    </td>
+
+                                    {{-- KANAL --}}
+                                    <td class="py-2 px-3 text-gray-500 text-xs">
+                                        {{ $p->kanal_pengaduan }}
+                                    </td>
+
+                                    {{-- STATUS --}}
                                     <td class="py-2 px-3">
                                         <x-status-pill :status="$p->status" />
                                     </td>
-                                    <td class="py-2 px-3 text-xs text-gray-500">
-                                        {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->format('d M Y') }}
+
+                                    {{-- DEADLINE --}}
+                                    <td class="py-2 px-3 text-xs">
+                                        <div class="{{ $p->sla_status === 'over' ? 'text-red-600 font-semibold' : 'text-gray-600' }}">
+                                            {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->format('d M Y') }}
+                                        </div>
+                                        <div class="text-[10px] text-gray-400">
+                                            {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->diffForHumans() }}
+                                        </div>
                                     </td>
+
+                                    {{-- AKSI --}}
                                     <td class="py-2 px-3">
-                                        {{--
-                                            openModalTL(pengaduanId, tiket, nama, statusSaat, catatanLama, tindakLanjutId)
-                                            - Jika sudah ada TL: mode UPDATE (form PUT)
-                                            - Jika belum ada TL: mode STORE (form POST)
-                                        --}}
                                         <button onclick="openModalTL(
                                                 '{{ $p->id }}',
                                                 '{{ $p->nomor_tiket }}',
@@ -135,15 +173,16 @@
                                             {{ $tlId ? 'Edit TL' : 'Tindak Lanjut' }}
                                         </button>
                                     </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="7" class="py-8 text-center text-gray-400 text-sm">
-                                        Belum ada pengaduan untuk seksi ini
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
+
+    </tr>
+@empty
+    <tr>
+        <td colspan="7" class="py-8 text-center text-gray-400 text-sm">
+            Belum ada pengaduan untuk seksi ini
+        </td>
+    </tr>
+@endforelse
+</tbody>
                     </table>
                 </div>
                 <div class="mt-4">{{ $pengaduans->links() }}</div>

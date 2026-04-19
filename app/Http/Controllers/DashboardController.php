@@ -105,18 +105,22 @@ class DashboardController extends Controller
             ->groupBy('status')
             ->get();
  
-        // === LAPORAN SLA (belum selesai, urut deadline) ===
+        // === LAPORAN SLA (dengan pagination) ===
         $laporanSla = Pengaduan::with('tindakLanjut')
             ->where('status', '!=', 'selesai')
             ->orderBy('deadline_tindak_lanjut')
-            ->get()
-            ->map(function ($p) {
+            ->paginate(10, ['*'], 'sla_page'); // Gunakan paginate di sini
+
+            // Gunakan getCollection() untuk memproses/map data yang ada di halaman tersebut
+            $laporanSla->getCollection()->transform(function ($p) {
                 $p->sla_status = $this->hitungSlaStatus($p->deadline_tindak_lanjut);
                 return $p;
             });
  
         // === SEMUA PENGADUAN (paginate) ===
-        $pengaduans = Pengaduan::with('tindakLanjut')->latest()->paginate(15);
+        $pengaduans = Pengaduan::with('tindakLanjut')
+            ->latest()
+            ->paginate(15, ['*'], 'pengaduan_page');
  
         return view('dashboard.tikkim', compact(
             'totalBulanIni', 'selesai', 'slaOver', 'slaHMinus1',
@@ -141,11 +145,12 @@ class DashboardController extends Controller
 
         $pengaduans = Pengaduan::where('seksi_tujuan', $seksi)
             ->latest()
-            ->paginate(15)
-            ->through(function ($p) {
-                $p->sla_status = $this->hitungSlaStatus($p->deadline_tindak_lanjut);
-                return $p;
-            });
+            ->paginate(15);
+
+        $pengaduans->getCollection()->transform(function ($p) {
+            $p->sla_status = $this->hitungSlaStatus($p->deadline_tindak_lanjut);
+            return $p;
+        });
 
         return view('dashboard.seksi', compact(
             'seksi', 'totalMasuk', 'selesai', 'slaOver', 'menunggu', 'pengaduans'
@@ -197,11 +202,19 @@ class DashboardController extends Controller
     private function hitungSlaStatus($deadline): string
     {
         if (!$deadline) return 'ok';
-        $now  = Carbon::now();
-        $deadline = Carbon::parse($deadline);
-        
-        if ($now->greaterThan($deadline)) return 'over';
-        if ($now->diffInDays($deadline) <= 1) return 'warn';
-        return 'ok';
+
+        $now = now();
+        $deadline = \Carbon\Carbon::parse($deadline);
+
+        if ($now->greaterThan($deadline)) {
+            return 'over'; // merah
+        }
+
+        // H-1 → kurang dari atau sama dengan 1 hari
+        if ($now->diffInHours($deadline) <= 24) {
+            return 'warn'; // kuning
+        }
+
+        return 'ok'; // hijau
     }
 }

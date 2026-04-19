@@ -21,7 +21,7 @@
         </div>
 
             {{-- FORM: STORE (new) --}}
-            <form id="tl-form-store" method="POST" action="{{ route('tindak-lanjut.store') }}"
+            <form id="tl-form-store" method="POST" action="{{ route('tindak-lanjut.store') }}" enctype="multipart/form-data"
                 class="p-6 space-y-4">
                 @csrf
                 <input type="hidden" name="pengaduan_id" id="tl-pengaduan-id">
@@ -62,16 +62,13 @@
                 </div>
 
                 {{-- INPUT GAMBAR BUKTI (Tambahan Baru) --}}
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                            Foto Bukti (Opsional)
-                        </label>
-                        <div class="relative">
-                            <input type="file" name="bukti_gambar" id="tl-gambar" accept="image/*"
-                                class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-dashed border-gray-300 rounded-xl p-2" />
-                        </div>
-                        <p class="text-[10px] text-gray-400 mt-1 italic">*Format: JPG, PNG. Maks: 2MB</p>
-                    </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1.5">
+                        Foto Bukti (Opsional)
+                    </label>
+                    <input type="file" name="bukti_gambar"
+                        class="w-full text-xs border border-dashed border-gray-300 rounded-xl p-2" />
+                </div>
 
                 {{-- RIWAYAT (muncul jika sudah ada tindak lanjut sebelumnya) --}}
                 <div id="tl-riwayat-wrap" class="hidden">
@@ -95,7 +92,7 @@
             </form>
 
         {{-- FORM: UPDATE (existing — hidden by default, swap via JS) --}}
-        <form id="tl-form-update" method="POST" action="" class="hidden p-6 space-y-4">
+        <form id="tl-form-update" method="POST" action="" enctype="multipart/form-data" class="hidden p-6 space-y-4">
             @csrf
             @method('PUT')
 

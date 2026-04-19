@@ -89,6 +89,9 @@ Route::middleware(['auth', 'role:tikkim,seksi'])->group(function () {
     // Hapus tindak lanjut (reset status ke pending)
     Route::delete('/tindak-lanjut/{tindakLanjut}', [TindakLanjutController::class, 'destroy'])
         ->name('tindak-lanjut.destroy');
+
+    Route::get('/pengaduan/{id}', [PengaduanController::class, 'show'])
+        ->name('pengaduan.show');
 });
 
 /*

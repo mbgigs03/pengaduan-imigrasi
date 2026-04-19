@@ -234,6 +234,13 @@ class PengaduanController extends Controller
         return back()->with('success', 'Status pengaduan diperbarui.');
     }
 
+    public function show($id)
+    {
+        $pengaduan = Pengaduan::with('tindakLanjut')->findOrFail($id);
+
+        return view('pengaduan.show', compact('pengaduan'));
+    }
+
      // ─────────────────────────────────────────────────────────
     // Helper: inject CSS styling ke HTML sebelum di-render DomPDF
     // ─────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ use App\Models\Pengaduan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class TindakLanjutController extends Controller
 {
@@ -24,10 +25,10 @@ class TindakLanjutController extends Controller
             'pengaduan_id'    => 'required|exists:pengaduans,id',
             'status_baru'     => 'required|in:proses,diteruskan,selesai',
             'catatan_petugas' => 'required|string|max:2000',
+            'bukti_gambar'    => 'nullable|image|mimes:jpg,jpeg,png|max:10240', // 🔥 TAMBAH INI
         ], [
             'catatan_petugas.required' => 'Catatan tindak lanjut wajib diisi.',
         ]);
-
 
         $pengaduan = Pengaduan::findOrFail($request->pengaduan_id);
 
@@ -40,10 +41,15 @@ class TindakLanjutController extends Controller
             );
         }
 
+        $buktiPath = null;
+
         if ($request->hasFile('bukti_gambar')) {
-        $path = $request->file('bukti_gambar')->store('tindak-lanjut', 'public');
-        $data['bukti_gambar'] = $path; // Simpan path ini ke database
-}
+            $file = $request->file('bukti_gambar');
+        
+            $path = Storage::disk('supabase')->put('tindak-lanjut', $file);
+        
+            $buktiPath = Storage::disk('supabase')->url($path);
+        }
 
         $tanggalSelesai = $request->status_baru === 'selesai' ? Carbon::now() : null;
 
@@ -54,6 +60,7 @@ class TindakLanjutController extends Controller
                 'catatan_petugas' => $request->catatan_petugas,
                 'tanggal_selesai' => $tanggalSelesai,
                 'petugas_id'      => $user->id,  // opsional, lihat catatan migrasi di bawah
+                'bukti_gambar'    => $buktiPath,
             ]
         );
 

@@ -11,6 +11,7 @@ class TindakLanjut extends Model
         'catatan_petugas',
         'tanggal_selesai',
         'petugas_id',       // FK ke users (opsional, perlu kolom di migrasi)
+        'bukti_gambar',
     ];
 
     protected $casts = [

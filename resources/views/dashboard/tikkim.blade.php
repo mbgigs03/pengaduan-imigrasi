@@ -249,6 +249,7 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="mt-4">{{ $laporanSla->links() }}</div>
             </div>
 
             {{-- ═══ SEMUA PENGADUAN ═══ --}}
