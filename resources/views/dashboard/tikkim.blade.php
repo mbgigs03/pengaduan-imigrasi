@@ -214,7 +214,10 @@
                                     </td>
 
                                     {{-- Action --}}
-                                    <td class="py-3 px-3 text-right">
+                                    <td class="py-3 px-3">
+                                    <div class="flex items-center gap-1.5" x-data="{ open: false }">
+                                
+                                        {{-- Tombol Tindak Lanjut (utama) --}}
                                         <button
                                             onclick="openModalTL(
                                                 '{{ $p->id }}',
@@ -224,14 +227,111 @@
                                                 '{{ addslashes($p->keterangan_admin ?? '') }}',
                                                 '{{ $tlId }}'
                                             )"
-                                            class="text-xs px-3 py-1.5 rounded-lg font-bold transition shadow-sm
-                                            {{ $tlId 
-                                                ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100' 
+                                            class="text-xs px-3 py-1.5 rounded-lg font-bold transition shadow-sm whitespace-nowrap
+                                            {{ $tlId
+                                                ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
                                                 : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100' }}">
-                                            
                                             {{ $tlId ? 'Edit TL' : 'Tindak Lanjut' }}
                                         </button>
-                                    </td>
+                                
+                                        {{-- Dropdown Download ──────────────────────────────── --}}
+                                        <div class="relative" x-data="{ open: false }">
+                                
+                                            {{-- Trigger --}}
+                                            <button
+                                                @click="open = !open"
+                                                @keydown.escape="open = false"
+                                                class="inline-flex items-center gap-1 text-xs px-2.5 py-1.5
+                                                    border border-gray-200 rounded-lg text-gray-500
+                                                    hover:bg-gray-50 hover:text-gray-700 transition"
+                                                title="Unduh dokumen">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1
+                                                            m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                                </svg>
+                                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                                </svg>
+                                            </button>
+                                
+                                            {{-- Menu Dropdown --}}
+                                            <div
+                                                x-show="open"
+                                                @click.outside="open = false"
+                                                x-transition:enter="transition ease-out duration-100"
+                                                x-transition:enter-start="opacity-0 scale-95"
+                                                x-transition:enter-end="opacity-100 scale-100"
+                                                x-transition:leave="transition ease-in duration-75"
+                                                x-transition:leave-start="opacity-100 scale-100"
+                                                x-transition:leave-end="opacity-0 scale-95"
+                                                class="absolute right-0 z-30 mt-1 w-44 bg-white rounded-xl
+                                                    border border-gray-100 shadow-lg py-1"
+                                                style="display:none">
+                                
+                                                {{-- Download PDF --}}
+                                                <a href="{{ route('dashboard.pengaduan.downloadPdf', $p->nomor_tiket) }}"
+                                                class="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700
+                                                        hover:bg-red-50 hover:text-red-700 transition group">
+                                                    <span class="w-6 h-6 rounded-md bg-red-50 group-hover:bg-red-100
+                                                                flex items-center justify-center flex-shrink-0 transition">
+                                                        <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707
+                                                                    l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                                        </svg>
+                                                    </span>
+                                                    <div>
+                                                        <div class="font-semibold">Unduh PDF</div>
+                                                        @if ($p->pdf_url)
+                                                            <div class="text-[10px] text-green-500">Sudah tersedia</div>
+                                                        @else
+                                                            <div class="text-[10px] text-gray-400">Generate otomatis</div>
+                                                        @endif
+                                                    </div>
+                                                </a>
+                                
+                                                {{-- Download DOCX --}}
+                                                <a href="{{ route('dashboard.pengaduan.downloadDocx', $p->nomor_tiket) }}"
+                                                class="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700
+                                                        hover:bg-blue-50 hover:text-blue-700 transition group">
+                                                    <span class="w-6 h-6 rounded-md bg-blue-50 group-hover:bg-blue-100
+                                                                flex items-center justify-center flex-shrink-0 transition">
+                                                        <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
+                                                                    a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                        </svg>
+                                                    </span>
+                                                    <div>
+                                                        <div class="font-semibold">Unduh DOCX</div>
+                                                        <div class="text-[10px] text-gray-400">Dokumen arsip</div>
+                                                    </div>
+                                                </a>
+                                
+                                                <div class="border-t border-gray-100 my-1"></div>
+                                
+                                                {{-- Preview di tab baru --}}
+                                                @if ($p->pdf_url)
+                                                    <a href="{{ $p->pdf_url }}" target="_blank"
+                                                    class="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-500
+                                                            hover:bg-gray-50 transition">
+                                                        <span class="w-6 h-6 rounded-md bg-gray-50 flex items-center justify-center flex-shrink-0">
+                                                            <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4
+                                                                        M14 4h6m0 0v6m0-6L10 14"/>
+                                                            </svg>
+                                                        </span>
+                                                        Buka di Tab Baru
+                                                    </a>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        {{-- End Dropdown --}}
+                                
+                                    </div>
+                                </td>
                                 </tr>
 
                             @empty
@@ -275,12 +375,51 @@
                                     </td>
                                     <td class="py-2 px-3 text-xs text-gray-500">{{ $p->kanal_pengaduan }}</td>
                                     <td class="py-2 px-3"><x-status-pill :status="$p->status" /></td>
-                                    <td class="py-2 px-3 text-xs text-gray-500">{{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->format('d M Y') }}</td>
+                                    <td class="py-2 px-3 text-xs text-gray-500">{{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->format('d M Y') }}</td>                                    
                                     <td class="py-2 px-3">
-                                        <button onclick="openModalTL('{{ $p->id }}','{{ $p->nomor_tiket }}','{{ addslashes($p->nama) }}','{{ $p->status }}','{{ addslashes($p->keterangan_admin ?? '') }}','{{ $tlId }}')"
-                                            class="text-xs px-3 py-1.5 rounded-lg font-medium transition {{ $tlId ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100' : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100' }}">
-                                            {{ $tlId ? 'Edit TL' : 'Tindak Lanjut' }}
-                                        </button>
+                                        <div class="flex items-center gap-1.5">
+                                            {{-- Tindak Lanjut --}}
+                                            <button onclick="openModalTL(
+                                                    '{{ $p->id }}',
+                                                    '{{ $p->nomor_tiket }}',
+                                                    '{{ addslashes($p->nama) }}',
+                                                    '{{ $p->status }}',
+                                                    '{{ addslashes($p->keterangan_admin ?? '') }}',
+                                                    '{{ $tlId }}'
+                                                )"
+                                                class="text-xs px-2.5 py-1.5 rounded-lg font-medium transition whitespace-nowrap
+                                                {{ $tlId
+                                                    ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
+                                                    : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100' }}">
+                                                {{ $tlId ? 'Edit TL' : 'TL' }}
+                                            </button>
+                                    
+                                            {{-- Download PDF --}}
+                                            <a href="{{ route('dashboard.pengaduan.downloadPdf', $p->nomor_tiket) }}"
+                                            title="Unduh PDF"
+                                            class="inline-flex items-center justify-center w-7 h-7 rounded-lg
+                                                    border border-gray-200 text-gray-400 hover:bg-red-50 hover:text-red-600
+                                                    hover:border-red-200 transition">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707
+                                                            l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                                </svg>
+                                            </a>
+                                    
+                                            {{-- Download DOCX --}}
+                                            <a href="{{ route('dashboard.pengaduan.downloadDocx', $p->nomor_tiket) }}"
+                                            title="Unduh DOCX"
+                                            class="inline-flex items-center justify-center w-7 h-7 rounded-lg
+                                                    border border-gray-200 text-gray-400 hover:bg-blue-50 hover:text-blue-600
+                                                    hover:border-blue-200 transition">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
+                                                            a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                </svg>
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
