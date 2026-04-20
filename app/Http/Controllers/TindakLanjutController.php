@@ -46,7 +46,13 @@ class TindakLanjutController extends Controller
         if ($request->hasFile('bukti_gambar')) {
             $file = $request->file('bukti_gambar');
         
-            $path = Storage::disk('supabase')->put('tindak-lanjut', $file);
+            $filename = 'bukti-tindak-lanjut.' . $file->getClientOriginalExtension();
+
+            $path = Storage::disk('supabase')->putFileAs(
+                "pengaduan/{$pengaduan->nomor_tiket}",
+                $file,
+                $filename
+            );
         
             $buktiPath = Storage::disk('supabase')->url($path);
         }
