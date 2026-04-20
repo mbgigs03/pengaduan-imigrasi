@@ -62,7 +62,7 @@ class DashboardController extends Controller
         // === PERFORMA PER SEKSI (termasuk breakdown per status untuk stacked chart) ===
         $seksiList = [
             'Tikkim',
-            'Doklanintal',
+            'Doklanintalkim',
             'Inteldakim',
             'Tata Usaha',
         ];
@@ -217,4 +217,161 @@ class DashboardController extends Controller
 
         return 'ok'; // hijau
     }
+
+    public function downloadPdf(string $nomorTiket)
+    {
+        $pengaduan = \App\Models\Pengaduan::where('nomor_tiket', $nomorTiket)
+            ->firstOrFail();
+    
+        // ── Guard: hak akses role seksi ─────────────────────────
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if ($user->profile->role === 'seksi') {
+            abort_if(
+                $pengaduan->seksi_tujuan !== $user->profile->seksi,
+                403,
+                'Anda tidak berwenang mengunduh dokumen ini.'
+            );
+        }
+    
+        // ── Kasus 1: pdf_url ada, cek apakah file masih exist di Supabase ──
+        if ($pengaduan->pdf_url) {
+    
+            // Verifikasi file masih ada dengan HEAD request (hemat bandwidth)
+            $check = \Illuminate\Support\Facades\Http::timeout(5)
+                ->head($pengaduan->pdf_url);
+    
+            if ($check->successful()) {
+                // File ada → redirect ke URL publik Supabase
+                // Browser akan menampilkan dialog download karena Content-Type PDF
+                return redirect($pengaduan->pdf_url);
+            }
+    
+            // File di Supabase sudah dihapus/tidak ada → reset url, regenerate
+            $pengaduan->update(['pdf_url' => null]);
+        }
+    
+        // ── Kasus 2: pdf_url kosong atau file hilang → generate sekarang ──
+        try {
+            $this->doGeneratePdf($pengaduan);
+            $pengaduan->refresh();
+    
+            if ($pengaduan->pdf_url) {
+                return redirect($pengaduan->pdf_url);
+            }
+    
+            return back()->with('error', 'PDF berhasil dibuat tetapi URL tidak tersimpan. Coba lagi.');
+    
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('[Download PDF] Gagal generate', [
+                'tiket' => $nomorTiket,
+                'error' => $e->getMessage(),
+            ]);
+    
+            return back()->with('error', 'File PDF belum tersedia dan gagal dibuat. Hubungi administrator.');
+        }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // DOWNLOAD DOCX — mengambil file .docx arsip dari Supabase
+    // Path Supabase: pengaduan/{nomor_tiket}/laporan-pengaduan.docx
+    // ═══════════════════════════════════════════════════════════════
+    public function downloadDocx(string $nomorTiket)
+    {
+        $pengaduan = \App\Models\Pengaduan::where('nomor_tiket', $nomorTiket)
+            ->firstOrFail();
+    
+        // Guard seksi
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if ($user->profile->role === 'seksi') {
+            abort_if($pengaduan->seksi_tujuan !== $user->profile->seksi, 403);
+        }
+    
+        // Susun URL publik file .docx
+        $docxPath   = "pengaduan/{$nomorTiket}/laporan-pengaduan.docx";
+        $publicBase = rtrim(env('SUPABASE_URL'), '/');
+        $docxUrl    = "{$publicBase}/{$docxPath}";
+    
+        // Cek apakah file ada di Supabase
+        $check = \Illuminate\Support\Facades\Http::timeout(5)->head($docxUrl);
+    
+        if (!$check->successful()) {
+            return back()->with('error', 'File dokumen (.docx) belum tersedia untuk tiket ini.');
+        }
+    
+        // Stream file dari Supabase ke browser sebagai download
+        // Ini menghindari menyimpan file di server lokal
+        $response = \Illuminate\Support\Facades\Http::timeout(30)->get($docxUrl);
+    
+        if (!$response->successful()) {
+            return back()->with('error', 'Gagal mengunduh file dari server. Coba lagi.');
+        }
+    
+        $filename = 'Laporan-Pengaduan-' . $nomorTiket . '.docx';
+    
+        return response($response->body(), 200, [
+            'Content-Type'        => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Length'      => strlen($response->body()),
+        ]);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // PRIVATE: Generate PDF on-demand (sinkron, tanpa queue)
+    // Dipakai sebagai fallback saat pdf_url kosong/rusak
+    // ═══════════════════════════════════════════════════════════════
+    private function doGeneratePdf(\App\Models\Pengaduan $pengaduan): void
+    {
+        $tmpDir = storage_path('app/tmp');
+        if (!is_dir($tmpDir)) {
+            mkdir($tmpDir, 0755, true);
+        }
+    
+        $slug       = \Illuminate\Support\Str::slug($pengaduan->nomor_tiket);
+        $pdfTmpPath = $tmpDir . DIRECTORY_SEPARATOR . $slug . '.pdf';
+    
+        try {
+            // Render Blade template → HTML
+            $jenis = strtolower($pengaduan->seksi_tujuan);
+            $html  = \Illuminate\Support\Facades\View::make('pdf.laporan-pengaduan', [
+                'pengaduan'      => $pengaduan,
+                'seksiFormatted' => $this->formatSeksiLabel($pengaduan->seksi_tujuan),
+                'cbPegawai'      => str_contains($jenis, 'pegawai')  ? '&#9745;' : '&#9744;',
+                'cbLayanan'      => str_contains($jenis, 'layanan')  ? '&#9745;' : '&#9744;',
+                'cbSarpras'      => (str_contains($jenis, 'sarpras') || str_contains($jenis, 'tata usaha'))
+                                        ? '&#9745;' : '&#9744;',
+            ])->render();
+    
+            // HTML → PDF via DomPDF
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled',      false);
+            $options->set('defaultFont',          'DejaVu Sans');
+            $options->set('chroot',               $tmpDir);
+    
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html, 'UTF-8');
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+    
+            file_put_contents($pdfTmpPath, $dompdf->output());
+    
+            // Upload ke Supabase
+            $storagePath = "pengaduan/{$pengaduan->nomor_tiket}/laporan-pengaduan.pdf";
+            \Illuminate\Support\Facades\Storage::disk('supabase')->put(
+                $storagePath,
+                file_get_contents($pdfTmpPath),
+                ['visibility' => 'public', 'ContentType' => 'application/pdf']
+            );
+    
+            // Simpan URL ke database
+            $publicUrl = rtrim(env('SUPABASE_URL'), '/') . '/' . $storagePath;
+            $pengaduan->update(['pdf_url' => $publicUrl]);
+    
+        } finally {
+            if (file_exists($pdfTmpPath)) {
+                @unlink($pdfTmpPath);
+            }
+        }
+    }
+
 }

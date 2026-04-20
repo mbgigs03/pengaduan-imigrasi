@@ -398,12 +398,14 @@
         type: 'bar',
         data: {
             labels: seksiStackedLabels,
+            
             datasets: [
                 { label:'Pending',    data:ssd.map(s=>s.pending),    backgroundColor:'#f59e0b', borderSkipped:false },
                 { label:'Proses',     data:ssd.map(s=>s.proses),     backgroundColor:'#3b82f6', borderSkipped:false },
                 { label:'Diteruskan', data:ssd.map(s=>s.diteruskan), backgroundColor:'#8b5cf6', borderSkipped:false },
                 { label:'Selesai',    data:ssd.map(s=>s.selesai),    backgroundColor:'#10b981', borderSkipped:false, borderRadius:{topLeft:4,topRight:4} },
             ],
+            
         },
         options: {
             responsive:true, maintainAspectRatio:false,

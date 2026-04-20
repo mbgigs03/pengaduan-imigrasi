@@ -130,22 +130,48 @@ class RekapitulasiExport implements FromCollection, WithColumnWidths, WithStyles
         ];
     }
 
+    // Tambahkan baris-baris spesifik pada bagian registerEvents Anda:
+
     public function registerEvents(): array
     {
         return [
             AfterSheet::class => function(AfterSheet $event) {
                 $lastRowMain = 6 + $this->totalRows;
-                $startRingkasan = $lastRowMain + 3;
-                $endRingkasan = $startRingkasan + 6;
+                $headerRingkasan = $lastRowMain + 3; // Baris Indikator, Jumlah, Persentase
+                $totalPengaduanRow = $headerRingkasan + 1; // Baris Total Pengaduan (Biru)
+                $slaRow = $headerRingkasan + 6; // Baris Melebihi SLA (Hijau Muda)
+                $endRingkasan = $headerRingkasan + 6;
 
-                // Border Tabel Utama (A-L)
+                // 1. Border Tabel Utama (A-L)
                 $event->sheet->getStyle("A6:L{$lastRowMain}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
                 
-                // Border Tabel Ringkasan (J-L)
-                $event->sheet->getStyle("J{$startRingkasan}:L{$endRingkasan}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+                // 2. Border Tabel Ringkasan (J-L)
+                $event->sheet->getStyle("J{$headerRingkasan}:L{$endRingkasan}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
                 
-                // Center alignment untuk angka di ringkasan
-                $event->sheet->getStyle("K{$startRingkasan}:L{$endRingkasan}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                // 3. Styling Baris "Total Pengaduan" (Biru seperti gambar)
+                $event->sheet->getStyle("J{$totalPengaduanRow}:L{$totalPengaduanRow}")->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+                    'fill' => [
+                        'fillType' => Fill::FILL_SOLID,
+                        'startColor' => ['argb' => 'FF2563EB'], // Blue-600
+                    ],
+                ]);
+
+                // 4. Styling Baris "Melebihi SLA" (Hijau Muda seperti gambar)
+                $event->sheet->getStyle("J{$slaRow}:L{$slaRow}")->applyFromArray([
+                    'fill' => [
+                        'fillType' => Fill::FILL_SOLID,
+                        'startColor' => ['argb' => 'FFDCFCE7'], // Green-100
+                    ],
+                ]);
+
+                // 5. Perataan Tengah untuk Kolom Jumlah dan Persentase
+                $event->sheet->getStyle("K{$headerRingkasan}:L{$endRingkasan}")
+                    ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+                // 6. Font Bold untuk label di kolom J (optional, menyesuaikan gambar)
+                $event->sheet->getStyle("J{$headerRingkasan}:J{$endRingkasan}")
+                    ->getFont()->setBold(true);
             },
         ];
     }
