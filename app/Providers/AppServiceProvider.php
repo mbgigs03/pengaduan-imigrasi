@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Models\Profile;
 use App\Models\User;
 use Illuminate\Support\ServiceProvider;
+use App\Repositories\PengaduanRepository;
+
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -13,7 +15,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(PengaduanRepository::class, fn() => new PengaduanRepository());
     }
 
     /**

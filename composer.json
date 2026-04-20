@@ -10,12 +10,9 @@
         "dompdf/dompdf": "^3.1",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
-<<<<<<< HEAD
         "league/flysystem-aws-s3-v3": "^3.32",
-=======
-        "league/flysystem-aws-s3-v3": "3.0",
+        "maatwebsite/excel": "^3.1",
         "mpdf/mpdf": "^8.3",
->>>>>>> 65bbf01d7ddf0865d6953ae55536530df6a7c413
         "phpoffice/phpword": "^1.1"
     },
     "require-dev": {
