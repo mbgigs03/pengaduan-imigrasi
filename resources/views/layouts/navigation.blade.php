@@ -19,6 +19,12 @@
                     <x-nav-link :href="route('pengaduan.create')" :active="request()->routeIs('pengaduan.create')">
                         {{ __('Buat Pengaduan') }}
                     </x-nav-link>
+                     <!-- Tombol Rekapitulasi hanya muncul untuk admin -->
+                    @if (in_array(auth()->user()->profile->role, ['tikkim', 'seksi']))
+                        <x-nav-link :href="route('rekapitulasi.index')" :active="request()->routeIs('rekapitulasi.index')">
+                            {{ __('📊 Rekapitulasi & Ekspor') }}
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 

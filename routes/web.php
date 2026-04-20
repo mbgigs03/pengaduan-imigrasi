@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TindakLanjutController;
+use App\Http\Controllers\RekapitulasiController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -92,6 +93,15 @@ Route::middleware(['auth', 'role:tikkim,seksi'])->group(function () {
 
     Route::get('/pengaduan/{id}', [PengaduanController::class, 'show'])
         ->name('pengaduan.show');
+
+         // Halaman utama dengan filter & tabel preview
+    // Halaman utama dengan filter & tabel preview
+    Route::get('/rekap', [RekapitulasiController::class, 'index'])
+        ->name('rekapitulasi.index'); // Ubah dari 'index' menjadi 'rekapitulasi.index'
+
+    // Ekspor ke Excel (.xlsx)
+    Route::get('/export/excel', [RekapitulasiController::class, 'exportExcel'])
+        ->name('rekapitulasi.export.excel');
 
         // Download PDF — redirect ke Supabase public URL
     Route::get(
