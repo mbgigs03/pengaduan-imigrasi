@@ -276,7 +276,7 @@ body {
     font-family: Arial, Helvetica, sans-serif;
     font-size: 11pt; /* Standar surat dinas biasanya 11pt - 12pt */
     color: #000;
-    line-height: 1.5;
+    line-height: 1.2;
 }
 .b{
     font-weight: bold;
@@ -354,9 +354,10 @@ body {
     <div class="kop-teks">
         <div class="instansi">KEMENTERIAN IMIGRASI DAN PEMASYARAKATAN REPUBLIK INDONESIA</div>
         <div class="instansi">DIREKTORAT JENDERAL IMIGRASI</div>
+        <div class="instansi">KANTOR WILAYAH JAWA TIMUR</div>
         <div class="b">KANTOR IMIGRASI KELAS II NON TPI MADIUN</div>
         <div class="alamat">Jl. Panglima Sudirman, Mejayan, Kab. Madiun, Jawa Timur</div>
-        <div class="alamat">madiun.imigrasi.go.id | kanim_madiun@imigrasi.go.id</div>
+        <div class="alamat">Laman : madiun.imigrasi.go.id, Pos-el : kanim_madiun@imigrasi.go.id</div>
     </div>
 </div>
 
