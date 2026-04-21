@@ -1,13 +1,11 @@
 {{-- resources/views/rekapitulasi/index.blade.php --}}
-<x-app-layout>
+<x-layouts.dashboard>
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 Rekapitulasi Pengaduan
             </h2>
-            <span class="text-sm text-gray-500">
-                {{ now()->translatedFormat('l, d F Y') }}
-            </span>
+            
         </div>
     </x-slot>
 
@@ -379,4 +377,4 @@
         };
     }
     </script>
-</x-app-layout>
+</x-layouts.dashboard>

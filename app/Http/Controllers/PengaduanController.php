@@ -15,6 +15,25 @@ use Dompdf\Options;
 
 class PengaduanController extends Controller
 {
+
+
+    public function index(Request $request)
+        {
+            $query = Pengaduan::query();
+            $kanalList = Pengaduan::distinct()->pluck('kanal_pengaduan')->filter()->toArray();
+
+            if ($request->has('status') && in_array($request->status, ['pending', 'proses', 'diteruskan', 'selesai'])) {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('seksi') && !empty($request->seksi)) {
+                $query->where('seksi_tujuan', $request->seksi);
+            }
+
+            $pengaduans = $query->orderBy('created_at', 'desc')->paginate(10);
+
+            return view('pengaduan.index', compact('pengaduans', 'kanalList'));
+        }
     // ═══════════════════════════════════════════════════════════
     // STORE
     // ═══════════════════════════════════════════════════════════
@@ -82,6 +101,7 @@ class PengaduanController extends Controller
             'tiket'   => $pengaduan->nomor_tiket,
         ]);
     }
+    
 
     // ═══════════════════════════════════════════════════════════
     // GENERATE & UPLOAD PDF

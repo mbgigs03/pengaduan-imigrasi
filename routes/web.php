@@ -49,9 +49,11 @@ Route::middleware('auth')->group(function () {
             ->name('tindaklanjut.store');
     });
 
+    Route::get('/pengaduan', [PengaduanController::class, 'index'])->name('pengaduan.index');
+
     /*
     |----------------------------------------------------------------------
-    | TIKKIM ONLY — Laporan, statistik global, semua seksi
+    | TIKKIM ONLY — Laporan, st`Xatistik global, semua seksi
     |----------------------------------------------------------------------
     */
     Route::middleware('role:tikkim')->group(function () {

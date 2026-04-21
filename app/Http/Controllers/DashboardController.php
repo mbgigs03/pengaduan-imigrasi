@@ -151,6 +151,7 @@ class DashboardController extends Controller
             ->latest()
             ->paginate(15, ['*'], 'pengaduan_page')
             ->withQueryString();
+        $kanalList = Pengaduan::pluck('kanal_pengaduan')->filter()->toArray();
 
         return view('dashboard.tikkim', compact(
             'totalBulanIni',
