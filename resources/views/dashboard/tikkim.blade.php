@@ -125,6 +125,35 @@
                         @endforeach
                     </div>
                 </div>
+
+                {{-- FILTER LAPORAN SLA --}}
+                <form method="GET" class="mb-4 flex flex-wrap gap-3 items-center" action="{{ route('dashboard') }}">
+                    <input type="text" name="keyword" placeholder="Cari nama/nomor tiket..."
+                        value="{{ request('keyword') }}"
+                        class="border rounded-lg px-3 py-2 text-sm">
+                    <select name="status" class="border rounded-lg pl-3 px-10 py-2 text-sm">
+                        <option value="">Semua Status</option>
+                        <option value="pending"    {{ request('status') == 'pending'    ? 'selected' : '' }}>Pending</option>
+                        <option value="proses"     {{ request('status') == 'proses'     ? 'selected' : '' }}>Proses</option>
+                        <option value="diteruskan" {{ request('status') == 'diteruskan' ? 'selected' : '' }}>Diteruskan</option>
+                        <option value="selesai"    {{ request('status') == 'selesai'    ? 'selected' : '' }}>Selesai</option>
+                    </select>
+                    <select name="kanal" class="border rounded-lg px-3 py-2 text-sm">
+                        <option value="">Semua Kanal</option>
+                        @foreach($kanalList as $kanal)
+                            <option value="{{ $kanal }}" {{ request('kanal') == $kanal ? 'selected' : '' }}>{{ $kanal }}</option>
+                        @endforeach
+                    </select>
+                    <select name="sla" class="border rounded-lg pl-3 px-10 py-2 text-sm">
+                        <option value="">Semua SLA</option>
+                        <option value="ok"   {{ request('sla') == 'ok'   ? 'selected' : '' }}>On Track</option>
+                        <option value="warn" {{ request('sla') == 'warn' ? 'selected' : '' }}>H-1</option>
+                        <option value="over" {{ request('sla') == 'over' ? 'selected' : '' }}>Terlambat</option>
+                    </select>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">Filter</button>
+                    <a href="{{ route('dashboard') }}" class="text-sm text-gray-500 underline hover:text-gray-700">Reset</a>
+                </form>
+
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead>
@@ -137,67 +166,61 @@
                         <tbody>
                             @forelse ($laporanSla as $p)
                                 @php
-                                    // Meta SLA (UI + label + warna)
                                     $slaMeta = match($p->sla_status) {
                                         'over' => [
-                                            'label' => 'Terlambat',
-                                            'dot'   => 'bg-red-500',
-                                            'pill'  => 'bg-red-100 text-red-700',
-                                            'shadow'=> 'shadow-[0_0_8px_rgba(239,68,68,0.4)]'
+                                            'label'  => 'Terlambat',
+                                            'dot'    => 'bg-red-500',
+                                            'pill'   => 'bg-red-100 text-red-700',
+                                            'shadow' => 'shadow-[0_0_8px_rgba(239,68,68,0.4)]'
                                         ],
                                         'warn' => [
-                                            'label' => 'H-1 Deadline',
-                                            'dot'   => 'bg-amber-500',
-                                            'pill'  => 'bg-amber-100 text-amber-700',
-                                            'shadow'=> ''
+                                            'label'  => 'H-1 Deadline',
+                                            'dot'    => 'bg-amber-500',
+                                            'pill'   => 'bg-amber-100 text-amber-700',
+                                            'shadow' => ''
                                         ],
                                         default => [
-                                            'label' => 'On Track',
-                                            'dot'   => 'bg-green-500',
-                                            'pill'  => 'bg-green-100 text-green-700',
-                                            'shadow'=> ''
+                                            'label'  => 'On Track',
+                                            'dot'    => 'bg-green-500',
+                                            'pill'   => 'bg-green-100 text-green-700',
+                                            'shadow' => ''
                                         ],
                                     };
-
-                                    // Cek apakah sudah ada tindak lanjut
                                     $tlId = optional($p->tindakLanjut)->id;
                                 @endphp
 
                                 <tr class="border-b border-gray-50 hover:bg-gray-50 transition">
-                                    
+
                                     {{-- Nomor Tiket + Indicator --}}
                                     <td class="py-3 px-3">
                                         <div class="flex items-center gap-2">
-                                            <span class="w-2.5 h-2.5 rounded-full {{ $slaMeta['dot'] }} 
-                                                {{ $p->sla_status === 'over' ? 'animate-pulse' : '' }} 
+                                            <span class="w-2.5 h-2.5 rounded-full {{ $slaMeta['dot'] }}
+                                                {{ $p->sla_status === 'over' ? 'animate-pulse' : '' }}
                                                 {{ $slaMeta['shadow'] }}">
                                             </span>
-                                            <span class="text-xs font-mono text-gray-600">
-                                                {{ $p->nomor_tiket }}
-                                            </span>
+                                            <span class="text-xs font-mono text-gray-600">{{ $p->nomor_tiket }}</span>
                                         </div>
                                     </td>
 
                                     {{-- Nama --}}
-                                    <td class="py-3 px-3 font-semibold text-gray-800">
-                                        {{ $p->nama }}
-                                    </td>
+                                    <td class="py-3 px-3 font-semibold text-gray-800">{{ $p->nama }}</td>
 
                                     {{-- Seksi --}}
-                                    <td class="py-3 px-3 text-xs text-gray-500 uppercase">
-                                        {{ $p->seksi_tujuan }}
-                                    </td>
+                                    <td class="py-3 px-3 text-xs text-gray-500 uppercase">{{ $p->seksi_tujuan }}</td>
 
-                                    {{-- Aduan --}}
-                                    <td class="py-3 px-3 text-xs text-gray-500 max-w-xs truncate" title="{{ $p->aduan }}">
-                                        {{ Str::limit($p->aduan, 45) }}
-                                    </td>
-
-                                    {{-- Status + SLA --}}
+                                    {{-- Aduan — tombol Detail --}}
                                     <td class="py-3 px-3">
-                                        <div class="flex items-center gap-2 flex-wrap">
-                                            <x-status-pill :status="$p->status" />
-                                        </div>
+                                        <a href="{{ route('pengaduan.show', $p->id) }}"
+                                            class="text-xs px-3 py-1.5 rounded-lg font-medium
+                                                    bg-indigo-50 text-indigo-700 border border-indigo-200
+                                                    hover:bg-indigo-100 transition">
+                                            Detail
+                                        </a>
+                                    </td>
+
+                                    {{-- Status --}}
+                                    <td class="py-3 px-3">
+                                        <x-status-pill :status="$p->status" />
                                     </td>
 
                                     {{-- Deadline --}}
@@ -213,125 +236,108 @@
                                         </div>
                                     </td>
 
-                                    {{-- Action --}}
+                                    {{-- Aksi --}}
                                     <td class="py-3 px-3">
-                                    <div class="flex items-center gap-1.5" x-data="{ open: false }">
-                                
-                                        {{-- Tombol Tindak Lanjut (utama) --}}
-                                        <button
-                                            onclick="openModalTL(
-                                                '{{ $p->id }}',
-                                                '{{ $p->nomor_tiket }}',
-                                                '{{ addslashes($p->nama) }}',
-                                                '{{ $p->status }}',
-                                                '{{ addslashes($p->keterangan_admin ?? '') }}',
-                                                '{{ $tlId }}'
-                                            )"
-                                            class="text-xs px-3 py-1.5 rounded-lg font-bold transition shadow-sm whitespace-nowrap
-                                            {{ $tlId
-                                                ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
-                                                : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100' }}">
-                                            {{ $tlId ? 'Edit TL' : 'Tindak Lanjut' }}
-                                        </button>
-                                
-                                        {{-- Dropdown Download ──────────────────────────────── --}}
-                                        <div class="relative" x-data="{ open: false }">
-                                
-                                            {{-- Trigger --}}
+                                        <div class="flex items-center gap-1.5" x-data="{ open: false }">
+
+                                            {{-- Tombol Tindak Lanjut --}}
                                             <button
-                                                @click="open = !open"
-                                                @keydown.escape="open = false"
-                                                class="inline-flex items-center gap-1 text-xs px-2.5 py-1.5
-                                                    border border-gray-200 rounded-lg text-gray-500
-                                                    hover:bg-gray-50 hover:text-gray-700 transition"
-                                                title="Unduh dokumen">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1
-                                                            m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                                </svg>
-                                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                                </svg>
+                                                onclick="openModalTL(
+                                                    '{{ $p->id }}',
+                                                    '{{ $p->nomor_tiket }}',
+                                                    '{{ addslashes($p->nama) }}',
+                                                    '{{ $p->status }}',
+                                                    '{{ addslashes($p->keterangan_admin ?? '') }}',
+                                                    '{{ $tlId }}'
+                                                )"
+                                                class="text-xs px-3 py-1.5 rounded-lg font-bold transition shadow-sm whitespace-nowrap
+                                                    {{ $tlId
+                                                        ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
+                                                        : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100' }}">
+                                                {{ $tlId ? 'Edit TL' : 'Tindak Lanjut' }}
                                             </button>
-                                
-                                            {{-- Menu Dropdown --}}
-                                            <div
-                                                x-show="open"
-                                                @click.outside="open = false"
-                                                x-transition:enter="transition ease-out duration-100"
-                                                x-transition:enter-start="opacity-0 scale-95"
-                                                x-transition:enter-end="opacity-100 scale-100"
-                                                x-transition:leave="transition ease-in duration-75"
-                                                x-transition:leave-start="opacity-100 scale-100"
-                                                x-transition:leave-end="opacity-0 scale-95"
-                                                class="absolute right-0 z-30 mt-1 w-44 bg-white rounded-xl
-                                                    border border-gray-100 shadow-lg py-1"
-                                                style="display:none">
-                                
-                                                {{-- Download PDF --}}
-                                                <a href="{{ route('dashboard.pengaduan.downloadPdf', $p->nomor_tiket) }}"
-                                                class="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700
-                                                        hover:bg-red-50 hover:text-red-700 transition group">
-                                                    <span class="w-6 h-6 rounded-md bg-red-50 group-hover:bg-red-100
-                                                                flex items-center justify-center flex-shrink-0 transition">
-                                                        <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707
-                                                                    l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                                                        </svg>
-                                                    </span>
-                                                    <div>
-                                                        <div class="font-semibold">Unduh PDF</div>
-                                                        @if ($p->pdf_url)
-                                                            <div class="text-[10px] text-green-500">Sudah tersedia</div>
-                                                        @else
-                                                            <div class="text-[10px] text-gray-400">Generate otomatis</div>
-                                                        @endif
-                                                    </div>
-                                                </a>
-                                
-                                                {{-- Download DOCX --}}
-                                                <a href="{{ route('dashboard.pengaduan.downloadDocx', $p->nomor_tiket) }}"
-                                                class="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700
-                                                        hover:bg-blue-50 hover:text-blue-700 transition group">
-                                                    <span class="w-6 h-6 rounded-md bg-blue-50 group-hover:bg-blue-100
-                                                                flex items-center justify-center flex-shrink-0 transition">
-                                                        <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
-                                                                    a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                                        </svg>
-                                                    </span>
-                                                    <div>
-                                                        <div class="font-semibold">Unduh DOCX</div>
-                                                        <div class="text-[10px] text-gray-400">Dokumen arsip</div>
-                                                    </div>
-                                                </a>
-                                
-                                                <div class="border-t border-gray-100 my-1"></div>
-                                
-                                                {{-- Preview di tab baru --}}
-                                                @if ($p->pdf_url)
-                                                    <a href="{{ $p->pdf_url }}" target="_blank"
-                                                    class="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-500
-                                                            hover:bg-gray-50 transition">
-                                                        <span class="w-6 h-6 rounded-md bg-gray-50 flex items-center justify-center flex-shrink-0">
-                                                            <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                                            {{-- Dropdown Download --}}
+                                            <div class="relative" x-data="{ open: false }">
+                                                <button
+                                                    @click="open = !open"
+                                                    @keydown.escape="open = false"
+                                                    class="inline-flex items-center gap-1 text-xs px-2.5 py-1.5
+                                                        border border-gray-200 rounded-lg text-gray-500
+                                                        hover:bg-gray-50 hover:text-gray-700 transition"
+                                                    title="Unduh dokumen">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                                    </svg>
+                                                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                                    </svg>
+                                                </button>
+
+                                                <div
+                                                    x-show="open"
+                                                    @click.outside="open = false"
+                                                    x-transition:enter="transition ease-out duration-100"
+                                                    x-transition:enter-start="opacity-0 scale-95"
+                                                    x-transition:enter-end="opacity-100 scale-100"
+                                                    x-transition:leave="transition ease-in duration-75"
+                                                    x-transition:leave-start="opacity-100 scale-100"
+                                                    x-transition:leave-end="opacity-0 scale-95"
+                                                    class="absolute right-0 z-30 mt-1 w-44 bg-white rounded-xl border border-gray-100 shadow-lg py-1"
+                                                    style="display:none">
+
+                                                    <a href="{{ route('dashboard.pengaduan.downloadPdf', $p->nomor_tiket) }}"
+                                                        class="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-red-50 hover:text-red-700 transition group">
+                                                        <span class="w-6 h-6 rounded-md bg-red-50 group-hover:bg-red-100 flex items-center justify-center flex-shrink-0 transition">
+                                                            <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4
-                                                                        M14 4h6m0 0v6m0-6L10 14"/>
+                                                                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                                                             </svg>
                                                         </span>
-                                                        Buka di Tab Baru
+                                                        <div>
+                                                            <div class="font-semibold">Unduh PDF</div>
+                                                            @if ($p->pdf_url)
+                                                                <div class="text-[10px] text-green-500">Sudah tersedia</div>
+                                                            @else
+                                                                <div class="text-[10px] text-gray-400">Generate otomatis</div>
+                                                            @endif
+                                                        </div>
                                                     </a>
-                                                @endif
+
+                                                    <a href="{{ route('dashboard.pengaduan.downloadDocx', $p->nomor_tiket) }}"
+                                                        class="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition group">
+                                                        <span class="w-6 h-6 rounded-md bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center flex-shrink-0 transition">
+                                                            <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                            </svg>
+                                                        </span>
+                                                        <div>
+                                                            <div class="font-semibold">Unduh DOCX</div>
+                                                            <div class="text-[10px] text-gray-400">Dokumen arsip</div>
+                                                        </div>
+                                                    </a>
+
+                                                    <div class="border-t border-gray-100 my-1"></div>
+
+                                                    @if ($p->pdf_url)
+                                                        <a href="{{ $p->pdf_url }}" target="_blank"
+                                                            class="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-500 hover:bg-gray-50 transition">
+                                                            <span class="w-6 h-6 rounded-md bg-gray-50 flex items-center justify-center flex-shrink-0">
+                                                                <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                                                </svg>
+                                                            </span>
+                                                            Buka di Tab Baru
+                                                        </a>
+                                                    @endif
+                                                </div>
                                             </div>
+
                                         </div>
-                                        {{-- End Dropdown --}}
-                                
-                                    </div>
-                                </td>
+                                    </td>
                                 </tr>
 
                             @empty
@@ -355,11 +361,40 @@
             {{-- ═══ SEMUA PENGADUAN ═══ --}}
             <div class="bg-white rounded-xl border border-gray-100 p-5">
                 <h3 class="chart-title">Semua Pengaduan</h3>
+
+                {{-- FILTER SEMUA PENGADUAN --}}
+                <form method="GET" class="mb-4 flex flex-wrap gap-3 items-center" action="{{ route('dashboard') }}">
+                    <input type="text" name="keyword_all" placeholder="Cari nama/nomor tiket..."
+                        value="{{ request('keyword_all') }}"
+                        class="border rounded-lg px-3 py-2 text-sm">
+                    <select name="status_all" class="border rounded-lg pl-3 px-10 py-2 text-sm">
+                        <option value="">Semua Status</option>
+                        <option value="pending"    {{ request('status_all') == 'pending'    ? 'selected' : '' }}>Pending</option>
+                        <option value="proses"     {{ request('status_all') == 'proses'     ? 'selected' : '' }}>Proses</option>
+                        <option value="diteruskan" {{ request('status_all') == 'diteruskan' ? 'selected' : '' }}>Diteruskan</option>
+                        <option value="selesai"    {{ request('status_all') == 'selesai'    ? 'selected' : '' }}>Selesai</option>
+                    </select>
+                    <select name="kanal_all" class="border rounded-lg px-3 py-2 text-sm">
+                        <option value="">Semua Kanal</option>
+                        @foreach($kanalList as $kanal)
+                            <option value="{{ $kanal }}" {{ request('kanal_all') == $kanal ? 'selected' : '' }}>{{ $kanal }}</option>
+                        @endforeach
+                    </select>
+                    <select name="sla_all" class="border rounded-lg pl-3 px-10 py-2 text-sm">
+                        <option value="">Semua SLA</option>
+                        <option value="ok"   {{ request('sla_all') == 'ok'   ? 'selected' : '' }}>On Track</option>
+                        <option value="warn" {{ request('sla_all') == 'warn' ? 'selected' : '' }}>H-1</option>
+                        <option value="over" {{ request('sla_all') == 'over' ? 'selected' : '' }}>Terlambat</option>
+                    </select>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">Filter</button>
+                    <a href="{{ route('dashboard') }}" class="text-sm text-gray-500 underline hover:text-gray-700">Reset</a>
+                </form>
+
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="border-b border-gray-100">
-                                @foreach(['Tiket','Nama / Seksi','Kanal','Status','Deadline','Aksi'] as $h)
+                                @foreach(['Tiket','Nama / Seksi','Kanal','Aduan','Status','Deadline','Aksi'] as $h)
                                     <th class="text-left py-2 px-3 text-xs text-gray-400 font-semibold uppercase">{{ $h }}</th>
                                 @endforeach
                             </tr>
@@ -367,63 +402,50 @@
                         <tbody>
                             @forelse ($pengaduans as $p)
                                 @php $tlId = optional($p->tindakLanjut)->id; @endphp
-                                <tr>
-                                    <td class="py-2 px-3 text-xs text-gray-500">{{ $p->nomor_tiket }}</td>
+                                <tr class="border-b border-gray-50 hover:bg-gray-50 transition">
+                                    <td class="py-2 px-3 text-xs font-mono text-gray-500">{{ $p->nomor_tiket }}</td>
                                     <td class="py-2 px-3">
                                         <div class="font-medium text-gray-800">{{ $p->nama }}</div>
                                         <div class="text-xs text-gray-400">{{ $p->seksi_tujuan }}</div>
                                     </td>
                                     <td class="py-2 px-3 text-xs text-gray-500">{{ $p->kanal_pengaduan }}</td>
-                                    <td class="py-2 px-3"><x-status-pill :status="$p->status" /></td>
-                                    <td class="py-2 px-3 text-xs text-gray-500">{{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->format('d M Y') }}</td>                                    
+
+                                    {{-- Aduan — tombol Detail --}}
                                     <td class="py-2 px-3">
-                                        <div class="flex items-center gap-1.5">
-                                            {{-- Tindak Lanjut --}}
-                                            <button onclick="openModalTL(
-                                                    '{{ $p->id }}',
-                                                    '{{ $p->nomor_tiket }}',
-                                                    '{{ addslashes($p->nama) }}',
-                                                    '{{ $p->status }}',
-                                                    '{{ addslashes($p->keterangan_admin ?? '') }}',
-                                                    '{{ $tlId }}'
-                                                )"
-                                                class="text-xs px-2.5 py-1.5 rounded-lg font-medium transition whitespace-nowrap
+                                        <a href="{{ route('pengaduan.show', $p->id) }}"
+                                            class="text-xs px-3 py-1.5 rounded-lg font-medium
+                                                    bg-indigo-50 text-indigo-700 border border-indigo-200
+                                                    hover:bg-indigo-100 transition">
+                                            Detail
+                                        </a>
+                                    </td>
+
+                                    <td class="py-2 px-3"><x-status-pill :status="$p->status" /></td>
+                                    <td class="py-2 px-3 text-xs text-gray-500">
+                                        {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->format('d M Y') }}
+                                    </td>
+                                    <td class="py-2 px-3">
+                                        <button
+                                            onclick="openModalTL(
+                                                '{{ $p->id }}',
+                                                '{{ $p->nomor_tiket }}',
+                                                '{{ addslashes($p->nama) }}',
+                                                '{{ $p->status }}',
+                                                '{{ addslashes($p->keterangan_admin ?? '') }}',
+                                                '{{ $tlId }}'
+                                            )"
+                                            class="text-xs px-3 py-1.5 rounded-lg font-medium transition
                                                 {{ $tlId
                                                     ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
                                                     : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100' }}">
-                                                {{ $tlId ? 'Edit TL' : 'TL' }}
-                                            </button>
-                                    
-                                            {{-- Download PDF --}}
-                                            <a href="{{ route('dashboard.pengaduan.downloadPdf', $p->nomor_tiket) }}"
-                                            title="Unduh PDF"
-                                            class="inline-flex items-center justify-center w-7 h-7 rounded-lg
-                                                    border border-gray-200 text-gray-400 hover:bg-red-50 hover:text-red-600
-                                                    hover:border-red-200 transition">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707
-                                                            l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                                                </svg>
-                                            </a>
-                                    
-                                            {{-- Download DOCX --}}
-                                            <a href="{{ route('dashboard.pengaduan.downloadDocx', $p->nomor_tiket) }}"
-                                            title="Unduh DOCX"
-                                            class="inline-flex items-center justify-center w-7 h-7 rounded-lg
-                                                    border border-gray-200 text-gray-400 hover:bg-blue-50 hover:text-blue-600
-                                                    hover:border-blue-200 transition">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
-                                                            a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                                </svg>
-                                            </a>
-                                        </div>
+                                            {{ $tlId ? 'Edit TL' : 'Tindak Lanjut' }}
+                                        </button>
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="6" class="py-8 text-center text-gray-400 text-sm">Belum ada pengaduan</td></tr>
+                                <tr>
+                                    <td colspan="7" class="py-8 text-center text-gray-400 text-sm">Belum ada pengaduan</td>
+                                </tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -529,7 +551,6 @@
     });
 
     // 5. STACKED BAR — DETAIL STATUS PER SEKSI
-    // Data ini perlu ditambahkan di DashboardController (lihat catatan di bawah)
     const seksiStackedLabels = {!! json_encode($performaSeksi->pluck('nama')->values()) !!};
     const ssd = {!! json_encode($performaSeksi->map(fn($s)=>['pending'=>$s['pending']??0,'proses'=>$s['proses']??0,'diteruskan'=>$s['diteruskan']??0,'selesai'=>$s['selesai']??0])->values()) !!};
 
@@ -537,14 +558,12 @@
         type: 'bar',
         data: {
             labels: seksiStackedLabels,
-            
             datasets: [
                 { label:'Pending',    data:ssd.map(s=>s.pending),    backgroundColor:'#f59e0b', borderSkipped:false },
                 { label:'Proses',     data:ssd.map(s=>s.proses),     backgroundColor:'#3b82f6', borderSkipped:false },
                 { label:'Diteruskan', data:ssd.map(s=>s.diteruskan), backgroundColor:'#8b5cf6', borderSkipped:false },
                 { label:'Selesai',    data:ssd.map(s=>s.selesai),    backgroundColor:'#10b981', borderSkipped:false, borderRadius:{topLeft:4,topRight:4} },
             ],
-            
         },
         options: {
             responsive:true, maintainAspectRatio:false,
