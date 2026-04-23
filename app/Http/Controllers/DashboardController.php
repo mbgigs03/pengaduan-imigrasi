@@ -39,132 +39,76 @@ class DashboardController extends Controller
      */
     private function tikkim(Request $request)
     {
-        $now = now();
-
-        // === FILTER INPUT ===
-        $keyword = $request->keyword;
-        $status  = $request->status;
-        $seksi   = $request->seksi;
-        $kanal   = $request->kanal;
-        $sla     = $request->sla;
-
-        // === BASE QUERY (FILTERED DATA) ===
-        $baseQuery = Pengaduan::query();
-
-        if ($keyword) {
-            $baseQuery->where(function ($q) use ($keyword) {
-                $q->where('nama', 'like', "%$keyword%")
-                ->orWhere('nomor_tiket', 'like', "%$keyword%");
-            });
-        }
-
-        if ($status) {
-            $baseQuery->where('status', $status);
-        }
-
-        if ($seksi) {
-            $baseQuery->where('seksi_tujuan', $seksi);
-        }
-
-        if ($kanal) {
-            $baseQuery->where('kanal_pengaduan', $kanal);
-        }
-
-        // === FILTER SLA ===
-        if ($sla) {
-            if ($sla === 'over') {
-                $baseQuery->where('status', '!=', 'selesai')
-                    ->where('deadline_tindak_lanjut', '<', $now);
-            } elseif ($sla === 'warn') {
-                $baseQuery->where('status', '!=', 'selesai')
-                    ->whereBetween('deadline_tindak_lanjut', [$now, $now->copy()->addDay()]);
-            } elseif ($sla === 'ok') {
-                $baseQuery->where('deadline_tindak_lanjut', '>', $now->copy()->addDay());
-            }
-        }
-
-        // === STATISTIK (PAKAI CLONE BIAR AMAN) ===
-        $totalBulanIni = (clone $baseQuery)
-            ->whereMonth('tgl_pengaduan', $now->month)
-            ->whereYear('tgl_pengaduan', $now->year)
-            ->count();
-
-        $selesai = (clone $baseQuery)
-            ->where('status', 'selesai')
-            ->count();
-
-        $slaOver = (clone $baseQuery)
-            ->where('status', '!=', 'selesai')
-            ->where('deadline_tindak_lanjut', '<', $now)
-            ->count();
-
-        $slaHMinus1 = (clone $baseQuery)
-            ->where('status', '!=', 'selesai')
-            ->whereBetween('deadline_tindak_lanjut', [$now, $now->copy()->addDay()])
-            ->count();
-
-        // === LIST FILTER (DINAMIS) ===
-        $kanalList = Pengaduan::select('kanal_pengaduan')->distinct()->pluck('kanal_pengaduan');
-        $seksiList = Pengaduan::select('seksi_tujuan')->distinct()->pluck('seksi_tujuan');
-
-        // === CHART DATA (TIDAK TERPENGARUH FILTER) ⚠️ PENTING
-        $kanalStats = Pengaduan::selectRaw('kanal_pengaduan, COUNT(*) as jumlah')
-            ->groupBy('kanal_pengaduan')
-            ->get();
-
-        $statusStats = Pengaduan::selectRaw('status, COUNT(*) as jumlah')
-            ->groupBy('status')
-            ->get();
-
-        // === PERFORMA SEKSI (FULL DATA) ⚠️
+        $now    = Carbon::now();
+        $kw     = $request->keyword;
+        $status = $request->status;
+        $seksiF = $request->seksi;
+        $kanalF = $request->kanal;
+ 
+        // ── 1 query untuk 4 statistik global ──────────────────
+        $stats = DB::selectOne("
+            SELECT
+                COUNT(*) FILTER (WHERE DATE_TRUNC('month', tgl_pengaduan) = DATE_TRUNC('month', NOW()))
+                    AS total_bulan,
+                COUNT(*) FILTER (WHERE status = 'selesai'
+                    AND DATE_TRUNC('month', tgl_pengaduan) = DATE_TRUNC('month', NOW()))
+                    AS selesai,
+                COUNT(*) FILTER (WHERE status != 'selesai' AND deadline_tindak_lanjut < NOW())
+                    AS sla_over,
+                COUNT(*) FILTER (WHERE status != 'selesai'
+                    AND deadline_tindak_lanjut BETWEEN NOW() AND NOW() + INTERVAL '24 hours')
+                    AS sla_hminus1
+            FROM pengaduans
+        ");
+ 
+        $totalBulanIni = (int) $stats->total_bulan;
+        $selesai       = (int) $stats->selesai;
+        $slaOver       = (int) $stats->sla_over;
+        $slaHMinus1    = (int) $stats->sla_hminus1;
+ 
+        // ── Performa seksi: 1 query GROUP BY (bukan N+1 loop) ─
         $performaSeksi = Pengaduan::selectRaw("
-                seksi_tujuan as nama,
-                COUNT(*) as total,
-                SUM(CASE WHEN status='selesai' THEN 1 ELSE 0 END) as selesai,
-                SUM(CASE WHEN status='proses' THEN 1 ELSE 0 END) as proses,
-                SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) as pending,
-                SUM(CASE WHEN status='diteruskan' THEN 1 ELSE 0 END) as diteruskan
-            ")
-            ->groupBy('seksi_tujuan')
-            ->get()
-            ->map(function ($s) {
-                $s->pct = $s->total > 0 ? round($s->selesai / $s->total * 100) : 0;
-                return $s;
-            });
-
-        // === LAPORAN SLA ===
-        $laporanSla = (clone $baseQuery)
-            ->with('tindakLanjut')
-            ->where('status', '!=', 'selesai')
-            ->orderBy('deadline_tindak_lanjut')
-            ->paginate(10, ['*'], 'sla_page')
-            ->withQueryString();
-
-        $laporanSla->getCollection()->transform(function ($p) {
-            $p->sla_status = $this->hitungSlaStatus($p->deadline_tindak_lanjut);
-            return $p;
-        });
-
-        // === SEMUA PENGADUAN ===
-        $pengaduans = (clone $baseQuery)
-            ->with('tindakLanjut')
-            ->latest()
-            ->paginate(15, ['*'], 'pengaduan_page')
-            ->withQueryString();
-        $kanalList = Pengaduan::pluck('kanal_pengaduan')->filter()->toArray();
-
+            seksi_tujuan AS nama,
+            COUNT(*) AS total,
+            SUM(CASE WHEN status='selesai'    THEN 1 ELSE 0 END) AS selesai,
+            SUM(CASE WHEN status='proses'     THEN 1 ELSE 0 END) AS proses,
+            SUM(CASE WHEN status='pending'    THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN status='diteruskan' THEN 1 ELSE 0 END) AS diteruskan,
+            SUM(CASE WHEN status != 'selesai'
+                      AND deadline_tindak_lanjut < NOW() THEN 1 ELSE 0 END) AS sla_over
+        ")
+        ->groupBy('seksi_tujuan')
+        ->having(DB::raw('COUNT(*)'), '>', 0)
+        ->get()
+        ->map(fn($s) => collect($s)->put(
+            'pct', $s->total > 0 ? round($s->selesai / $s->total * 100) : 0
+        ));
+ 
+        // ── Chart data ────────────────────────────────────────
+        $kanalStats  = Pengaduan::selectRaw('kanal_pengaduan, COUNT(*) as jumlah')
+            ->groupBy('kanal_pengaduan')->orderByDesc('jumlah')->get();
+ 
+        $statusStats = Pengaduan::selectRaw('status, COUNT(*) as jumlah')
+            ->groupBy('status')->get();
+ 
+        // ── Dropdown filter ───────────────────────────────────
+        $kanalList = $kanalStats->pluck('kanal_pengaduan')->filter()->values()->toArray();
+        $seksiList = $performaSeksi->pluck('nama')->filter()->values()->toArray();
+ 
+        // ── Tabel pengaduan dengan eager loading ──────────────
+        $q = Pengaduan::with('tindakLanjut:id,pengaduan_id,catatan_petugas');
+ 
+        if ($kw)     $q->where(fn($x) => $x->where('nama', 'like', "%$kw%")->orWhere('nomor_tiket', 'like', "%$kw%"));
+        if ($status) $q->where('status', $status);
+        if ($seksiF) $q->where('seksi_tujuan', $seksiF);
+        if ($kanalF) $q->where('kanal_pengaduan', $kanalF);
+ 
+        $pengaduans = $q->latest()->paginate(15, ['*'], 'pengaduan_page')->withQueryString();
+ 
         return view('dashboard.tikkim', compact(
-            'totalBulanIni',
-            'selesai',
-            'slaOver',
-            'slaHMinus1',
-            'performaSeksi',
-            'kanalStats',
-            'statusStats',
-            'laporanSla',
-            'pengaduans',
-            'kanalList',
-            'seksiList'
+            'totalBulanIni', 'selesai', 'slaOver', 'slaHMinus1',
+            'performaSeksi', 'kanalStats', 'statusStats',
+            'pengaduans', 'kanalList', 'seksiList'
         ));
     }
 

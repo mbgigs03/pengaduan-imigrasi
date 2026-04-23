@@ -7,6 +7,7 @@ use App\Repositories\PengaduanRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class RekapitulasiController extends Controller
 {
@@ -43,6 +44,36 @@ class RekapitulasiController extends Controller
         return view('rekapitulasi.index', compact(
             'pengaduans', 'summary', 'periodeLabel', 'filters'
         ));
+    }
+    
+
+    public function exportPdf(Request $request)
+    {
+        $validated = $request->validate([
+            'periode'    => 'nullable|in:daily,weekly,monthly,yearly,custom',
+            'start_date' => 'nullable|date|required_if:periode,custom',
+            'end_date'   => 'nullable|date|required_if:periode,custom|after_or_equal:start_date',
+            'status'     => 'nullable|in:pending,proses,diteruskan,selesai',
+            'kanal'      => 'nullable|string|max:50',
+            'seksi'      => 'nullable|string|max:50',
+        ]);
+
+        $filters = $this->buildFilters($validated);
+        
+        // Ambil data tanpa pagination untuk laporan PDF
+        $pengaduans = $this->repo->all($filters); 
+        $summary    = $this->repo->summary($filters);
+        $periode    = $this->repo->periodeLabel($filters);
+
+        $pdf = Pdf::loadView('rekapitulasi.pdf', [
+            'pengaduans' => $pengaduans,
+            'summary'    => $summary,
+            'periode'    => $periode,
+            'filters'    => $filters
+            
+        ])->setPaper('a4', 'landscape'); // Landscape biasanya lebih cocok untuk tabel rekap
+
+        return $pdf->download('Rekap-Pengaduan-' . now()->format('Ymd-His') . '.pdf');
     }
 
     // ═══════════════════════════════════════════════════════════

@@ -5,6 +5,7 @@ use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TindakLanjutController;
 use App\Http\Controllers\RekapitulasiController;
+use App\Http\Controllers\PengaduanSlaController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -60,6 +61,8 @@ Route::middleware('auth')->group(function () {
         // Semua route TIKKIM sudah ditangani oleh DashboardController::tikkim()
         // Tambahkan route eksklusif TIKKIM di sini jika diperlukan, contoh:
         // Route::get('/laporan/export', [LaporanController::class, 'export'])->name('laporan.export');
+        Route::get('/pengaduan/sla', [PengaduanController::class, 'sla'])->name('pengaduan.sla');
+        
     });
 
     /*
@@ -104,6 +107,7 @@ Route::middleware(['auth', 'role:tikkim,seksi'])->group(function () {
     // Ekspor ke Excel (.xlsx)
     Route::get('/export/excel', [RekapitulasiController::class, 'exportExcel'])
         ->name('rekapitulasi.export.excel');
+    Route::get('/rekapitulasi/export/pdf', [RekapitulasiController::class, 'exportPdf'])->name('rekapitulasi.export.pdf');
 
         // Download PDF — redirect ke Supabase public URL
     Route::get(
@@ -118,6 +122,10 @@ Route::middleware(['auth', 'role:tikkim,seksi'])->group(function () {
         [DashboardController::class, 'downloadDocx']
     )->name('dashboard.pengaduan.downloadDocx')
      ->where('nomorTiket', '[A-Z0-9\-]+');
+
+     // ── Monitoring SLA (halaman terpisah) ────────────────────
+    Route::get('/pengaduan/sla', [PengaduanSlaController::class, 'index'])
+        ->name('pengaduan.sla');
 });
 
 /*

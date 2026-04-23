@@ -235,6 +235,11 @@ class PengaduanController extends Controller
     $seksi  = $e($values['seksi']);
     $tiket  = $e($values['nomor_tiket']);
     $tindak = $e($values['tindak_lanjut']);
+    // Logika untuk membedakan Kepala Seksi dan Kepala Subag
+    $labelJabatan = "Kepala Seksi";
+    if (str_contains(strtolower($seksi), 'tata usaha')) {
+        $labelJabatan = "Kepala Sub Bagian";
+    }
     
     $logoPath = public_path('images/logo-imigrasi.png');
 
@@ -394,7 +399,7 @@ body {
             <td></td>
             <td>
                 Madiun, {$tgl}<br>
-                <strong>Kepala Seksi {$seksi}</strong>
+                <strong>{$labelJabatan} {$seksi}</strong>
                 <div class="garis-nama" style="margin-top: 70px;">( ................................. )</div>
             </td>
         </tr>
@@ -487,6 +492,8 @@ HTML;
 
         return view('pengaduan.show', compact('pengaduan'));
     }
+
+    
 
      // ─────────────────────────────────────────────────────────
     // Helper: inject CSS styling ke HTML sebelum di-render DomPDF

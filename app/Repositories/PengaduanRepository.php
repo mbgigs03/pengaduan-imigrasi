@@ -151,4 +151,30 @@ class PengaduanRepository
             default   => 'Semua Data',
         };
     }
+    public function all(array $filters = [])
+    {
+        $query = Pengaduan::query();
+
+        // Filter berdasarkan Seksi
+        if (!empty($filters['seksi'])) {
+            $query->where('seksi_tujuan', $filters['seksi']);
+        }
+
+        // Filter berdasarkan Status
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        // Filter berdasarkan Kanal
+        if (!empty($filters['kanal'])) {
+            $query->where('kanal_pengaduan', $filters['kanal']);
+        }
+
+        // Filter Rentang Tanggal (Start & End Date)
+        if (!empty($filters['start_date']) && !empty($filters['end_date'])) {
+            $query->whereBetween('tgl_pengaduan', [$filters['start_date'], $filters['end_date']]);
+        }
+
+        return $query->orderBy('created_at', 'desc')->get();
+    }
 }

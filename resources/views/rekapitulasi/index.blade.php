@@ -208,6 +208,18 @@
                                 </svg>
                                 Excel (.xlsx)
                             </button>
+                            {{-- Ekspor PDF --}}
+                            <button type="button"
+                                @click="exportData('pdf')"
+                                :disabled="periode === 'custom' && !!dateError"
+                                class="inline-flex items-center gap-2 px-4 py-2.5
+                                    bg-red-600 hover:bg-red-700 disabled:bg-red-300
+                                    text-white text-sm font-semibold rounded-xl transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                                PDF (.pdf)
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -356,7 +368,6 @@
                 const filterForm = document.getElementById('filter-form');
                 const exportForm = document.getElementById('export-form');
 
-                // Clone semua input dari filter-form ke export-form
                 exportForm.innerHTML = '';
                 const formData = new FormData(filterForm);
                 formData.forEach((value, key) => {
@@ -367,14 +378,18 @@
                     exportForm.appendChild(input);
                 });
 
-                // Arahkan ke endpoint yang sesuai
+                // Logika Pengalihan Action
                 if (type === 'excel') {
                     exportForm.action = '{{ route("rekapitulasi.export.excel") }}';
+                } else if (type === 'pdf') {
+                    exportForm.action = '{{ route("rekapitulasi.export.pdf") }}';
                 }
 
                 exportForm.submit();
             },
         };
     }
+
+    
     </script>
 </x-layouts.dashboard>
