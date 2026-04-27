@@ -18,16 +18,19 @@ class Pengaduan extends Model
         'kanal_pengaduan',
         'aduan',
         'bukti',
+        'bukti_files',   // ← kolom baru: JSON array of URLs
+        'foto_ktp',   // ← tambahkan setelah 'bukti_files'
         'status',
         'deadline_tindak_lanjut',
         'keterangan_admin',
-        'pdf_url',       // ← tambahan: URL PDF di Supabase Storage
+        'pdf_url',
         'updated_by',
     ];
 
     protected $casts = [
         'tgl_pengaduan'          => 'date',
         'deadline_tindak_lanjut' => 'datetime',
+        'bukti_files'            => 'array',  // ← otomatis encode/decode JSON
     ];
 
     // ── Relasi ───────────────────────────────────────────────
@@ -51,30 +54,47 @@ class Pengaduan extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    // ── Helper: gabungkan bukti lama + bukti_files baru ──────
+    // Dipakai di blade agar tidak perlu logic di view
+    // ── Helper: gabungkan bukti lama + bukti_files baru ──────
+    public function getAllBuktiAttribute(): array
+    {
+        $files = $this->bukti_files ?? [];
+
+        // Jika bukti lama ada dan belum masuk di array baru, sertakan
+        if ($this->bukti && !in_array($this->bukti, $files)) {
+            array_unshift($files, $this->bukti);
+        }
+
+        // --- TAMBAHAN FIX: Bersihkan URL yang dobel dari database lama ---
+        $cleanFiles = array_map(function($url) {
+            // Jika ada string yang berulang, kita replace/potong menjadi satu saja
+            return str_replace(
+                '/storage/v1/object/public/pengaduan/storage/v1/object/public/pengaduan/', 
+                '/storage/v1/object/public/pengaduan/', 
+                $url
+            );
+        }, $files);
+
+        return array_values(array_filter($cleanFiles));
+    }
+
     // ── Auto-generate nomor tiket saat creating ──────────────
     protected static function booted(): void
-
     {
         static::creating(function ($pengaduan) {
             $today = now()->format('Ymd');
-            
-            // Ambil data terakhir khusus hari ini
+
             $lastTicket = static::whereDate('created_at', now())->latest('id')->first();
-            
+
             if ($lastTicket) {
-                // Ambil 3 angka terakhir, contoh: IMI-20260417-007 -> ambil 007
                 $lastSequence = (int) substr($lastTicket->nomor_tiket, -3);
                 $sequence = $lastSequence + 1;
             } else {
                 $sequence = 1;
             }
 
-            // Format: IMI-20260417-007-XXXX (XXXX adalah random string agar tidak Unique Violation)
-            // Atau jika ingin tetap 007, tambahkan pengecekan loop
             $pengaduan->nomor_tiket = 'IMI-' . $today . '-' . str_pad($sequence, 3, '0', STR_PAD_LEFT);
-            
-            // OPTIONAL: Jika ingin SANGAT AMAN dari error duplicate, tambahkan suffix random
-            // $pengaduan->nomor_tiket .= '-' . strtoupper(Str::random(3));
         });
     }
 }

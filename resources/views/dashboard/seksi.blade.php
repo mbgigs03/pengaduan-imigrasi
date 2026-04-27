@@ -1,4 +1,5 @@
 {{-- resources/views/dashboard/seksi.blade.php --}}
+@php use App\Helpers\StatusHelper; @endphp
 <x-layouts.dashboard>
     <x-slot name="header">Dashboard — Seksi {{ $seksi }}</x-slot>
 
@@ -78,7 +79,7 @@
                                     </a>
                                 </td>
                                 <td class="text-xs text-slate-500">{{ $p->kanal_pengaduan }}</td>
-                                <td><span class="badge badge-{{ $p->status }}">{{ ucfirst($p->status) }}</span></td>
+                                <td><span class="badge {{ StatusHelper::badgeClass($p->status) }}">{{ StatusHelper::label($p->status) }}</span></td>
                                 <td>
                                     <div class="text-xs {{ $p->sla_status === 'over' ? 'text-red-600 font-bold' : 'text-slate-500' }}">
                                         {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->format('d M Y') }}

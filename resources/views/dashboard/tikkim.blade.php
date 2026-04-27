@@ -1,4 +1,6 @@
 {{-- resources/views/dashboard/tikkim.blade.php --}}
+@php use App\Helpers\StatusHelper; @endphp
+
 <x-layouts.dashboard>
     <x-slot name="header">Dashboard TIKKIM</x-slot>
 
@@ -13,7 +15,6 @@
         ═══════════════════════════════════════════ --}}
         <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">
 
-            {{-- Card: Total --}}
             <div class="stat-card flex items-start gap-4">
                 <div class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -27,7 +28,6 @@
                 </div>
             </div>
 
-            {{-- Card: Selesai --}}
             <div class="stat-card flex items-start gap-4">
                 <div class="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
                     <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,7 +47,6 @@
                 </div>
             </div>
 
-            {{-- Card: Over SLA --}}
             <div class="stat-card flex items-start gap-4 {{ $slaOver > 0 ? 'border-red-100 bg-red-50/30' : '' }}">
                 <div class="w-11 h-11 rounded-xl {{ $slaOver > 0 ? 'bg-red-100' : 'bg-slate-100' }} flex items-center justify-center flex-shrink-0">
                     <svg class="w-5 h-5 {{ $slaOver > 0 ? 'text-red-600' : 'text-slate-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -61,7 +60,6 @@
                 </div>
             </div>
 
-            {{-- Card: H-1 --}}
             <div class="stat-card flex items-start gap-4 {{ $slaHMinus1 > 0 ? 'border-amber-100 bg-amber-50/30' : '' }}">
                 <div class="w-11 h-11 rounded-xl {{ $slaHMinus1 > 0 ? 'bg-amber-100' : 'bg-slate-100' }} flex items-center justify-center flex-shrink-0">
                     <svg class="w-5 h-5 {{ $slaHMinus1 > 0 ? 'text-amber-600' : 'text-slate-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,16 +88,16 @@
                     </div>
                     <div class="space-y-2.5 flex-1">
                         @php
-                            $statusMeta  = [
-                                'pending'    => ['Pending',    '#f59e0b'],
-                                'proses'     => ['Proses',     '#3b82f6'],
-                                'diteruskan' => ['Diteruskan', '#8b5cf6'],
-                                'selesai'    => ['Selesai',    '#10b981'],
+                            $statusMeta = [
+                                'pending'    => [StatusHelper::label('pending'),    '#f59e0b'],
+                                'proses'     => [StatusHelper::label('proses'),     '#3b82f6'],
+                                'diteruskan' => [StatusHelper::label('diteruskan'), '#8b5cf6'],
+                                'selesai'    => [StatusHelper::label('selesai'),    '#10b981'],
                             ];
                             $totalStatus = $statusStats->sum('jumlah') ?: 1;
                         @endphp
                         @foreach ($statusStats as $s)
-                            @php [$slabel, $scolor] = $statusMeta[$s->status] ?? [ucfirst($s->status), '#94a3b8']; @endphp
+                            @php [$slabel, $scolor] = $statusMeta[$s->status] ?? [StatusHelper::label($s->status), '#94a3b8']; @endphp
                             <div>
                                 <div class="flex items-center justify-between text-xs mb-1">
                                     <div class="flex items-center gap-2">
@@ -145,10 +143,10 @@
                     </div>
                     <div class="grid grid-cols-2 gap-x-5 gap-y-2 w-full">
                         @foreach([
-                            ['On Track', $slaOnTrack,  '#10b981'],
-                            ['Selesai',  $selesai,     '#3b82f6'],
-                            ['H-1',      $slaHMinus1,  '#f59e0b'],
-                            ['Over SLA', $slaOver,     '#ef4444'],
+                            ['On Track', $slaOnTrack, '#10b981'],
+                            ['Selesai',  $selesai,    '#3b82f6'],
+                            ['H-1',      $slaHMinus1, '#f59e0b'],
+                            ['Over SLA', $slaOver,    '#ef4444'],
                         ] as [$l, $v, $c])
                             <div class="flex items-center gap-2 text-xs">
                                 <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:{{ $c }}"></span>
@@ -168,6 +166,10 @@
             <p class="chart-title">Breakdown Status per Seksi</p>
             <canvas id="chartSeksiStacked" style="max-height:196px"></canvas>
         </div>
+    </div>
+
+    <x-modal-tindak-lanjut />
+
     <x-slot name="scripts">
     <script>
     Chart.defaults.font.family = "'Plus Jakarta Sans','sans-serif'";
@@ -176,13 +178,29 @@
     const G = { color:'#f1f5f9', drawBorder:false };
     const T = { color:'#94a3b8' };
 
+    // Label SOP baru untuk chart
+    const statusLabelMap = {
+        'pending':    'Menunggu Verifikasi',
+        'proses':     'Disposisi Kasi',
+        'diteruskan': 'Sedang Ditindaklanjuti',
+        'selesai':    'Selesai',
+    };
+
     new Chart(document.getElementById('chartStatus'), {
         type:'pie',
         data:{
-            labels:{!! json_encode($statusStats->pluck('status')->map(fn($s)=>ucfirst($s))->values()) !!},
+            labels: {!! json_encode($statusStats->pluck('status')->map(fn($s) => match($s) {
+                'pending'    => 'Menunggu Verifikasi',
+                'proses'     => 'Disposisi Kasi',
+                'diteruskan' => 'Sedang Ditindaklanjuti',
+                'selesai'    => 'Selesai',
+                default      => ucfirst($s),
+            })->values()) !!},
             datasets:[{
                 data:{!! json_encode($statusStats->pluck('jumlah')->values()) !!},
-                backgroundColor:{!! json_encode($statusStats->pluck('status')->map(fn($s)=>match($s){'pending'=>'#f59e0b','proses'=>'#3b82f6','diteruskan'=>'#8b5cf6','selesai'=>'#10b981',default=>'#94a3b8'})->values()) !!},
+                backgroundColor:{!! json_encode($statusStats->pluck('status')->map(fn($s)=>match($s){
+                    'pending'=>'#f59e0b','proses'=>'#3b82f6','diteruskan'=>'#8b5cf6','selesai'=>'#10b981',default=>'#94a3b8'
+                })->values()) !!},
                 borderWidth:2,borderColor:'#fff',hoverOffset:6,
             }],
         },
@@ -240,10 +258,10 @@
         data:{
             labels:ssl,
             datasets:[
-                {label:'Pending',   data:ssd.map(s=>s.pending),    backgroundColor:'#f59e0b',borderSkipped:false},
-                {label:'Proses',    data:ssd.map(s=>s.proses),     backgroundColor:'#3b82f6',borderSkipped:false},
-                {label:'Diteruskan',data:ssd.map(s=>s.diteruskan), backgroundColor:'#8b5cf6',borderSkipped:false},
-                {label:'Selesai',   data:ssd.map(s=>s.selesai),    backgroundColor:'#10b981',borderSkipped:false,borderRadius:{topLeft:4,topRight:4}},
+                {label:'Menunggu Verifikasi',    data:ssd.map(s=>s.pending),    backgroundColor:'#f59e0b',borderSkipped:false},
+                {label:'Disposisi Kasi',         data:ssd.map(s=>s.proses),     backgroundColor:'#3b82f6',borderSkipped:false},
+                {label:'Sedang Ditindaklanjuti', data:ssd.map(s=>s.diteruskan), backgroundColor:'#8b5cf6',borderSkipped:false},
+                {label:'Selesai',                data:ssd.map(s=>s.selesai),    backgroundColor:'#10b981',borderSkipped:false,borderRadius:{topLeft:4,topRight:4}},
             ],
         },
         options:{

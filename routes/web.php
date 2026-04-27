@@ -126,11 +126,11 @@ Route::middleware(['auth', 'role:tikkim,seksi'])->group(function () {
      ->where('nomorTiket', '[A-Z0-9\-]+');   // hanya huruf besar, angka, strip
  
     // Download DOCX — stream dari Supabase ke browser
-    Route::get(
-        '/dashboard/pengaduan/{nomorTiket}/docx',
-        [DashboardController::class, 'downloadDocx']
-    )->name('dashboard.pengaduan.downloadDocx')
-     ->where('nomorTiket', '[A-Z0-9\-]+');
+    // Route::get(
+    //     '/dashboard/pengaduan/{nomorTiket}/docx',
+    //     [DashboardController::class, 'downloadDocx']
+    // )->name('dashboard.pengaduan.downloadDocx')
+    //  ->where('nomorTiket', '[A-Z0-9\-]+');
 
      // ── Monitoring SLA (halaman terpisah) ────────────────────
     Route::get('/pengaduan/sla', [PengaduanSlaController::class, 'index'])

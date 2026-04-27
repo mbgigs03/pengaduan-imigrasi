@@ -1,13 +1,15 @@
+{{-- resources/views/components/modal-tindak-lanjut.blade.php --}}
+@php
+    $statusValues = ['proses', 'diteruskan', 'selesai'];
+@endphp
 
-
-{{-- BACKDROP --}}
 <div id="tl-overlay"
     class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
     onclick="if(event.target===this) closeModalTL()">
 
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
 
-        {{-- HEADER MODAL --}}
+        {{-- HEADER --}}
         <div class="bg-gradient-to-r from-blue-800 to-blue-600 px-6 py-4 flex items-center justify-between">
             <div>
                 <h3 class="font-bold text-white text-base" id="tl-tiket-label">Tindak Lanjut</h3>
@@ -20,120 +22,103 @@
             </button>
         </div>
 
-            {{-- FORM: STORE (new) --}}
-            <form id="tl-form-store" method="POST" action="{{ route('tindak-lanjut.store') }}" enctype="multipart/form-data"
-                class="p-6 space-y-4">
-                @csrf
-                <input type="hidden" name="pengaduan_id" id="tl-pengaduan-id">
+        {{-- ══ FORM STORE (TL baru) — status langsung diteruskan, cukup catatan ══ --}}
+        <form id="tl-form-store" method="POST" action="{{ route('tindak-lanjut.store') }}"
+              class="p-6 space-y-4">
+            @csrf
+            <input type="hidden" name="pengaduan_id" id="tl-pengaduan-id">
+            {{-- Status dikunci ke 'diteruskan' (Sedang Ditindaklanjuti) --}}
+            <input type="hidden" name="status_baru" value="diteruskan">
 
-                {{-- Status Baru --}}
-                <div>
-                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                        Ubah Status Menjadi
-                    </label>
-                    <div class="grid grid-cols-3 gap-2" id="tl-status-picker">
-                        @foreach([
-                            ['proses',     '🔄', 'Proses',    'border-blue-400 bg-blue-50 text-blue-700'],
-                            ['diteruskan', '📤', 'Diteruskan','border-purple-400 bg-purple-50 text-purple-700'],
-                            ['selesai',    '✅', 'Selesai',   'border-emerald-400 bg-emerald-50 text-emerald-700'],
-                        ] as [$val, $icon, $label, $activeClass])
-                            <label class="status-option cursor-pointer">
-                                <input type="radio" name="status_baru" value="{{ $val }}" class="sr-only" required>
-                                <div class="status-card border-2 border-gray-200 rounded-xl p-3 text-center transition-all"
-                                    data-active="{{ $activeClass }}">
-                                    <div class="text-xl mb-1">{{ $icon }}</div>
-                                    <div class="text-xs font-bold text-gray-600 status-label">{{ $label }}</div>
-                                </div>
-                            </label>
-                        @endforeach
-                    </div>
-                </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                    Catatan Tindak Lanjut <span class="text-red-500">*</span>
+                </label>
+                <textarea name="catatan_petugas" id="tl-catatan" rows="4"
+                    class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 resize-none"
+                    placeholder="Tuliskan langkah yang sudah/sedang dilakukan..."
+                    required></textarea>
+            </div>
 
-                {{-- Catatan Petugas --}}
-                <div>
-                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                        Catatan Tindak Lanjut <span class="text-red-500">*</span>
-                    </label>
-                    <textarea name="catatan_petugas" id="tl-catatan" rows="4"
-                        class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 resize-none"
-                        placeholder="Tuliskan langkah yang sudah/sedang dilakukan, hasil koordinasi, atau alasan penerusan..."
-                        required></textarea>
-                    <p class="text-xs text-gray-400 mt-1">Catatan ini akan terlihat oleh pemohon saat mengecek status aduan.</p>
-                </div>
+            <div class="flex gap-3 pt-1">
+                <button type="button" onclick="closeModalTL()"
+                    class="flex-1 py-2.5 text-sm border border-gray-200 rounded-xl
+                           text-gray-500 hover:bg-gray-50 font-medium transition">
+                    Batal
+                </button>
+                <button type="submit"
+                    class="flex-1 py-2.5 text-sm bg-blue-700 hover:bg-blue-800
+                           text-white rounded-xl font-bold transition">
+                    Simpan Tindak Lanjut
+                </button>
+            </div>
+        </form>
 
-                {{-- INPUT GAMBAR BUKTI (Tambahan Baru) --}}
-                <div>
-                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1.5">
-                        Foto Bukti (Opsional)
-                    </label>
-                    <input type="file" name="bukti_gambar"
-                        class="w-full text-xs border border-dashed border-gray-300 rounded-xl p-2" />
-                </div>
-
-                {{-- RIWAYAT (muncul jika sudah ada tindak lanjut sebelumnya) --}}
-                <div id="tl-riwayat-wrap" class="hidden">
-                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3">
-                        <p class="text-xs font-semibold text-amber-700 mb-1">⚠️ Tindak lanjut sebelumnya:</p>
-                        <p class="text-xs text-amber-600 italic" id="tl-riwayat-text">—</p>
-                    </div>
-                </div>
-
-                {{-- ACTIONS --}}
-                <div class="flex gap-3 pt-1">
-                    <button type="button" onclick="closeModalTL()"
-                        class="flex-1 py-2.5 text-sm border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-50 font-medium transition">
-                        Batal
-                    </button>
-                    <button type="submit" id="tl-submit-btn"
-                        class="flex-1 py-2.5 text-sm bg-blue-700 hover:bg-blue-800 text-white rounded-xl font-bold transition">
-                        Simpan Tindak Lanjut
-                    </button>
-                </div>
-            </form>
-
-        {{-- FORM: UPDATE (existing — hidden by default, swap via JS) --}}
-        <form id="tl-form-update" method="POST" action="" enctype="multipart/form-data" class="hidden p-6 space-y-4">
+        {{-- ══ FORM UPDATE (Edit TL) — ada pilihan status + catatan + bukti jika selesai ══ --}}
+        <form id="tl-form-update" method="POST" action=""
+              enctype="multipart/form-data" class="hidden p-6 space-y-4"
+              x-data="{ statusPilih: '' }">
             @csrf
             @method('PUT')
 
+            {{-- Pilihan Status --}}
             <div>
                 <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                     Ubah Status Menjadi
                 </label>
-                <div class="grid grid-cols-3 gap-2" id="tl-status-picker-update">
-                    @foreach([
-                        ['proses',     '🔄', 'Proses'],
-                        ['diteruskan', '📤', 'Diteruskan'],
-                        ['selesai',    '✅', 'Selesai'],
-                    ] as [$val, $icon, $label])
-                        <label class="status-option cursor-pointer">
-                            <input type="radio" name="status_baru" value="{{ $val }}" class="sr-only">
-                            <div class="status-card border-2 border-gray-200 rounded-xl p-3 text-center transition-all">
-                                <div class="text-xl mb-1">{{ $icon }}</div>
-                                <div class="text-xs font-bold text-gray-600">{{ $label }}</div>
+                <div class="grid grid-cols-3 gap-2">
+                    @foreach ($statusValues as $val)
+                        @php $meta = \App\Helpers\StatusHelper::modalMeta($val); @endphp
+                        <label class="status-option-update cursor-pointer">
+                            <input type="radio" name="status_baru" value="{{ $val }}" class="sr-only"
+                                   x-model="statusPilih">
+                            <div class="status-card-update border-2 border-gray-200 rounded-xl p-3 text-center transition-all"
+                                 data-active="{{ $meta['active'] }}"
+                                 data-value="{{ $val }}">
+                                <div class="text-xl mb-1">{{ $meta['icon'] }}</div>
+                                <div class="text-xs font-bold text-gray-600 leading-tight">
+                                    {{ $meta['label'] }}
+                                </div>
                             </div>
                         </label>
                     @endforeach
                 </div>
             </div>
 
+            {{-- Catatan --}}
             <div>
                 <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                    Revisi Catatan <span class="text-red-500">*</span>
+                    Catatan Tindak Lanjut <span class="text-red-500">*</span>
                 </label>
                 <textarea name="catatan_petugas" id="tl-catatan-update" rows="4"
-                    class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 resize-none"
+                    class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 resize-none"
                     required></textarea>
+            </div>
+
+            {{-- Bukti foto — hanya muncul jika status = selesai --}}
+            <div x-show="statusPilih === 'selesai'" x-transition>
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1.5">
+                    Foto Bukti Penyelesaian <span class="text-gray-400 font-normal">(Opsional)</span>
+                </label>
+                <input type="file" name="bukti_gambar" accept="image/*"
+                    class="w-full text-xs border border-dashed border-gray-300 rounded-xl p-2
+                           text-gray-500 file:mr-2 file:text-xs file:border-0 file:rounded-lg
+                           file:bg-slate-100 file:text-slate-600 file:px-2 file:py-1"/>
+                <p class="text-[10px] text-gray-400 mt-1">Upload bukti bahwa pengaduan telah diselesaikan.</p>
             </div>
 
             <div class="flex gap-3 pt-1">
                 <button type="button" onclick="closeModalTL()"
-                    class="flex-1 py-2.5 text-sm border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-50 font-medium transition">
+                    class="flex-1 py-2.5 text-sm border border-gray-200 rounded-xl
+                           text-gray-500 hover:bg-gray-50 font-medium transition">
                     Batal
                 </button>
                 <button type="submit"
-                    class="flex-1 py-2.5 text-sm bg-blue-700 hover:bg-blue-800 text-white rounded-xl font-bold transition">
-                    Update Catatan
+                    class="flex-1 py-2.5 text-sm bg-blue-700 hover:bg-blue-800
+                           text-white rounded-xl font-bold transition">
+                    Simpan Perubahan
                 </button>
             </div>
         </form>
@@ -142,12 +127,6 @@
 </div>
 
 <script>
-/**
- * openModalTL(pengaduanId, tiket, nama, statusSaat, catatanLama, tindakLanjutId)
- *
- * - tindakLanjutId: ID dari tindak_lanjuts jika sudah ada record, null jika belum
- * - catatanLama: catatan_petugas yang sudah ada sebelumnya
- */
 function openModalTL(pengaduanId, tiket, nama, statusSaat, catatanLama, tindakLanjutId) {
     document.getElementById('tl-tiket-label').textContent = 'Tindak Lanjut — ' + tiket;
     document.getElementById('tl-nama-label').textContent  = nama;
@@ -155,41 +134,30 @@ function openModalTL(pengaduanId, tiket, nama, statusSaat, catatanLama, tindakLa
     const hasExisting = tindakLanjutId && tindakLanjutId !== 'null' && tindakLanjutId !== '';
 
     if (hasExisting) {
-        // MODE UPDATE
+        // Edit TL — tampilkan form update lengkap
         document.getElementById('tl-form-store').classList.add('hidden');
         document.getElementById('tl-form-update').classList.remove('hidden');
-
-        const updateAction = '/tindak-lanjut/' + tindakLanjutId;
-        document.getElementById('tl-form-update').action = updateAction;
+        document.getElementById('tl-form-update').action = '/tindak-lanjut/' + tindakLanjutId;
         document.getElementById('tl-catatan-update').value = catatanLama || '';
 
-        // Pre-select status saat ini
-        const radios = document.querySelectorAll('#tl-form-update input[type="radio"]');
-        radios.forEach(r => {
+        // Set radio sesuai status saat ini & trigger Alpine x-model
+        document.querySelectorAll('#tl-form-update input[type="radio"]').forEach(r => {
             r.checked = (r.value === statusSaat);
-            updateStatusCard(r);
+            updateStatusCardUpdate(r);
         });
-    } else {
-        // MODE STORE
-        document.getElementById('tl-form-update').classList.add('hidden');
-        document.getElementById('tl-form-store').classList.remove('hidden');
 
-        document.getElementById('tl-pengaduan-id').value = pengaduanId;
-        document.getElementById('tl-catatan').value      = '';
-
-        // Tampilkan riwayat jika ada catatan sebelumnya tapi belum ada record tindak lanjut
-        if (catatanLama && catatanLama.trim() !== '') {
-            document.getElementById('tl-riwayat-text').textContent = catatanLama;
-            document.getElementById('tl-riwayat-wrap').classList.remove('hidden');
-        } else {
-            document.getElementById('tl-riwayat-wrap').classList.add('hidden');
+        // Sync Alpine x-model supaya x-show bukti foto ikut terupdate
+        const alpineEl = document.getElementById('tl-form-update');
+        if (alpineEl._x_dataStack) {
+            alpineEl._x_dataStack[0].statusPilih = statusSaat;
         }
 
-        // Reset semua status card
-        document.querySelectorAll('#tl-form-store input[type="radio"]').forEach(r => {
-            r.checked = false;
-            updateStatusCard(r);
-        });
+    } else {
+        // TL baru — form simpel, cukup catatan
+        document.getElementById('tl-form-update').classList.add('hidden');
+        document.getElementById('tl-form-store').classList.remove('hidden');
+        document.getElementById('tl-pengaduan-id').value = pengaduanId;
+        document.getElementById('tl-catatan').value = '';
     }
 
     document.getElementById('tl-overlay').classList.remove('hidden');
@@ -201,36 +169,27 @@ function closeModalTL() {
     document.body.style.overflow = '';
 }
 
-// Update visual card saat radio diklik
-function updateStatusCard(radio) {
+function updateStatusCardUpdate(radio) {
     const card = radio.nextElementSibling;
     if (!card) return;
-    const activeClasses = (card.dataset.active || 'border-blue-400 bg-blue-50 text-blue-700').split(' ');
+    const activeClasses  = (card.dataset.active || '').split(' ').filter(Boolean);
     const defaultClasses = ['border-gray-200'];
 
     if (radio.checked) {
         defaultClasses.forEach(c => card.classList.remove(c));
         activeClasses.forEach(c => card.classList.add(c));
-        card.querySelector('.status-label') && (card.querySelector('.status-label').style.color = '');
     } else {
         activeClasses.forEach(c => card.classList.remove(c));
         defaultClasses.forEach(c => card.classList.add(c));
     }
 }
 
-// Pasang event listener ke semua status-option
-document.querySelectorAll('.status-option input[type="radio"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-        // Reset semua dalam container yang sama
-        const picker = this.closest('[id^="tl-status-picker"]');
-        if (picker) {
-            picker.querySelectorAll('input[type="radio"]').forEach(r => updateStatusCard(r));
-        }
+document.querySelectorAll('.status-option-update input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', function () {
+        document.querySelectorAll('.status-option-update input[type="radio"]')
+            .forEach(r => updateStatusCardUpdate(r));
     });
 });
 
-// ESC untuk tutup modal
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeModalTL();
-});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModalTL(); });
 </script>

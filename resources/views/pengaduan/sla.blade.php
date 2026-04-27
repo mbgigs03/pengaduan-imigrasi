@@ -7,7 +7,6 @@
         {{-- ═══ COUNTER CARDS ═══════════════════════════════════ --}}
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
 
-            {{-- Total aktif --}}
             <div class="bg-white rounded-2xl border border-slate-100 p-5 flex items-start gap-4">
                 <div class="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
                     <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -21,7 +20,6 @@
                 </div>
             </div>
 
-            {{-- Over SLA --}}
             <div class="bg-white rounded-2xl border p-5 flex items-start gap-4
                         {{ $counters['over'] > 0 ? 'border-red-200 bg-red-50/40 shadow-[0_0_0_1px_rgba(239,68,68,.15),0_4px_24px_rgba(239,68,68,.10)]' : 'border-slate-100' }}">
                 <div class="w-11 h-11 rounded-xl {{ $counters['over'] > 0 ? 'bg-red-100' : 'bg-slate-100' }} flex items-center justify-center flex-shrink-0">
@@ -31,14 +29,11 @@
                 </div>
                 <div>
                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Melewati SLA</p>
-                    <p class="text-2xl font-bold {{ $counters['over'] > 0 ? 'text-red-600' : 'text-slate-800' }} mt-0.5">
-                        {{ $counters['over'] }}
-                    </p>
+                    <p class="text-2xl font-bold {{ $counters['over'] > 0 ? 'text-red-600' : 'text-slate-800' }} mt-0.5">{{ $counters['over'] }}</p>
                     <p class="text-xs text-slate-400 mt-0.5">sudah melewati 3 hari</p>
                 </div>
             </div>
 
-            {{-- H-1 --}}
             <div class="bg-white rounded-2xl border p-5 flex items-start gap-4
                         {{ $counters['warn'] > 0 ? 'border-amber-200 bg-amber-50/40' : 'border-slate-100' }}">
                 <div class="w-11 h-11 rounded-xl {{ $counters['warn'] > 0 ? 'bg-amber-100' : 'bg-slate-100' }} flex items-center justify-center flex-shrink-0">
@@ -48,14 +43,11 @@
                 </div>
                 <div>
                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">H-1 Deadline</p>
-                    <p class="text-2xl font-bold {{ $counters['warn'] > 0 ? 'text-amber-600' : 'text-slate-800' }} mt-0.5">
-                        {{ $counters['warn'] }}
-                    </p>
+                    <p class="text-2xl font-bold {{ $counters['warn'] > 0 ? 'text-amber-600' : 'text-slate-800' }} mt-0.5">{{ $counters['warn'] }}</p>
                     <p class="text-xs text-slate-400 mt-0.5">dalam 24 jam ke depan</p>
                 </div>
             </div>
 
-            {{-- On Track --}}
             <div class="bg-white rounded-2xl border border-slate-100 p-5 flex items-start gap-4">
                 <div class="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
                     <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,7 +65,6 @@
         {{-- ═══ TABEL PRIORITAS SLA ══════════════════════════════ --}}
         <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden">
 
-            {{-- Header --}}
             <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
                 <div>
                     <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -86,16 +77,13 @@
                 </div>
                 <div class="flex items-center gap-3 text-xs">
                     <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-red-600 border border-red-200 font-semibold">
-                        <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                        Terlambat
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>Terlambat
                     </span>
                     <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-200 font-semibold">
-                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                        H-1
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>H-1
                     </span>
                     <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 font-semibold">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        On Track
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>On Track
                     </span>
                 </div>
             </div>
@@ -121,12 +109,17 @@
                     </select>
                 @endif
 
+                {{-- Filter Status — tanpa 'selesai', pakai full namespace --}}
                 <select name="status"
                         class="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-600
                                focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400">
                     <option value="">Semua Status</option>
-                    @foreach (['pending'=>'Pending','proses'=>'Proses','diteruskan'=>'Diteruskan'] as $v => $l)
-                        <option value="{{ $v }}" {{ request('status') === $v ? 'selected' : '' }}>{{ $l }}</option>
+                    @foreach (\App\Helpers\StatusHelper::options() as $val => $lbl)
+                        @if ($val !== 'selesai')
+                            <option value="{{ $val }}" {{ request('status') === $val ? 'selected' : '' }}>
+                                {{ $lbl }}
+                            </option>
+                        @endif
                     @endforeach
                 </select>
 
@@ -175,32 +168,27 @@
                                 $isWarn = $p->sla_status === 'warn';
                                 $tlId   = optional($p->tindakLanjut)->id;
 
-                                // Row background + glow berdasarkan prioritas
                                 $rowClass = match(true) {
                                     $isOver => 'bg-red-50/60 border-l-[3px] border-red-400',
                                     $isWarn => 'bg-amber-50/50 border-l-[3px] border-amber-400',
                                     default => 'border-l-[3px] border-transparent',
                                 };
 
-                                // Urutan visual di kolom pertama
                                 $priorityBadge = match(true) {
                                     $isOver => '<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-[9px] font-black animate-pulse">!</span>',
                                     $isWarn => '<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500 text-white text-[9px] font-black">~</span>',
                                     default => '<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-200 text-slate-500 text-[9px] font-bold">' . ($pengaduans->firstItem() + $i) . '</span>',
                                 };
 
-                                // Countdown text
                                 $deadline  = \Carbon\Carbon::parse($p->deadline_tindak_lanjut);
                                 $diffHours = abs((int) now()->diffInHours($deadline, false));
                                 $diffDays  = abs((int) now()->diffInDays($deadline, false));
 
                                 if ($isOver) {
-                                    $countdownText  = $diffDays > 0 ? "{$diffDays} hari" : "{$diffHours} jam";
-                                    $countdownLabel = 'Terlambat ' . $countdownText;
+                                    $countdownLabel = 'Terlambat ' . ($diffDays > 0 ? "{$diffDays} hari" : "{$diffHours} jam");
                                     $countdownClass = 'text-red-600 font-bold';
                                 } elseif ($isWarn) {
-                                    $countdownText  = $diffHours > 0 ? "~{$diffHours} jam" : 'Kurang 1 jam';
-                                    $countdownLabel = $countdownText . ' lagi';
+                                    $countdownLabel = ($diffHours > 0 ? "~{$diffHours} jam" : 'Kurang 1 jam') . ' lagi';
                                     $countdownClass = 'text-amber-600 font-bold';
                                 } else {
                                     $countdownLabel = $diffDays > 1 ? "{$diffDays} hari lagi" : "{$diffHours} jam lagi";
@@ -210,19 +198,12 @@
 
                             <tr class="border-b border-slate-50 hover:bg-slate-50/80 transition {{ $rowClass }}">
 
-                                {{-- Priority indicator --}}
+                                <td class="py-3 px-4">{!! $priorityBadge !!}</td>
+
                                 <td class="py-3 px-4">
-                                    {!! $priorityBadge !!}
+                                    <span class="font-mono text-xs text-slate-500 tracking-tight">{{ $p->nomor_tiket }}</span>
                                 </td>
 
-                                {{-- Tiket --}}
-                                <td class="py-3 px-4">
-                                    <span class="font-mono text-xs text-slate-500 tracking-tight">
-                                        {{ $p->nomor_tiket }}
-                                    </span>
-                                </td>
-
-                                {{-- Nama & Seksi --}}
                                 <td class="py-3 px-4">
                                     <div class="font-semibold text-slate-800 text-sm leading-tight">{{ $p->nama }}</div>
                                     <span class="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md mt-0.5 inline-block">
@@ -230,25 +211,22 @@
                                     </span>
                                 </td>
 
-                                {{-- Status --}}
+                                {{-- Status pakai full namespace --}}
                                 <td class="py-3 px-4">
-                                    <x-status-pill :status="$p->status" />
+                                    <span class="badge {{ \App\Helpers\StatusHelper::badgeClass($p->status) }}">
+                                        {{ \App\Helpers\StatusHelper::label($p->status) }}
+                                    </span>
                                 </td>
 
-                                {{-- Kanal --}}
                                 <td class="py-3 px-4 text-xs text-slate-500">{{ $p->kanal_pengaduan }}</td>
 
-                                {{-- Deadline (tanggal) --}}
                                 <td class="py-3 px-4">
                                     <div class="text-xs {{ $isOver ? 'text-red-600 font-bold' : 'text-slate-600' }}">
                                         {{ $deadline->format('d M Y') }}
                                     </div>
-                                    <div class="text-[10px] text-slate-400">
-                                        {{ $deadline->format('H:i') }} WIB
-                                    </div>
+                                    <div class="text-[10px] text-slate-400">{{ $deadline->format('H:i') }} WIB</div>
                                 </td>
 
-                                {{-- Sisa waktu / countdown --}}
                                 <td class="py-3 px-4">
                                     <div class="flex items-center gap-1.5">
                                         @if ($isOver)
@@ -258,23 +236,15 @@
                                         @else
                                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
                                         @endif
-                                        <span class="text-xs {{ $countdownClass }} whitespace-nowrap">
-                                            {{ $countdownLabel }}
-                                        </span>
+                                        <span class="text-xs {{ $countdownClass }} whitespace-nowrap">{{ $countdownLabel }}</span>
                                     </div>
                                 </td>
 
-                                {{-- Aksi --}}
                                 <td class="py-3 px-4">
                                     <div class="flex items-center gap-1.5">
 
-                                        {{-- Tindak Lanjut --}}
                                         <button
-                                            onclick="openModalTL(
-                                                '{{ $p->id }}','{{ $p->nomor_tiket }}',
-                                                '{{ addslashes($p->nama) }}','{{ $p->status }}',
-                                                '{{ addslashes($p->keterangan_admin ?? '') }}',
-                                                '{{ $tlId }}')"
+                                            onclick="openModalTL('{{ $p->id }}','{{ $p->nomor_tiket }}','{{ addslashes($p->nama) }}','{{ $p->status }}','{{ addslashes($p->keterangan_admin ?? '') }}','{{ $tlId }}')"
                                             class="text-xs px-2.5 py-1.5 rounded-lg font-bold whitespace-nowrap transition
                                                 {{ $isOver
                                                     ? 'bg-red-600 text-white hover:bg-red-700 shadow-sm'
@@ -284,7 +254,6 @@
                                             {{ $isOver ? '⚡ Segera!' : ($tlId ? 'Edit TL' : 'Tindak Lanjut') }}
                                         </button>
 
-                                        {{-- Download --}}
                                         <div class="relative" x-data="{ open: false }">
                                             <button @click="open = !open"
                                                     class="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200
@@ -312,18 +281,9 @@
                                                         </div>
                                                     </div>
                                                 </a>
-                                                <a href="{{ route('dashboard.pengaduan.downloadDocx', $p->nomor_tiket) }}"
-                                                   class="flex items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition">
-                                                    <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                                    <div>
-                                                        <div class="font-semibold">Unduh DOCX</div>
-                                                        <div class="text-[10px] text-slate-400">Arsip dokumen</div>
-                                                    </div>
-                                                </a>
                                             </div>
                                         </div>
 
-                                        {{-- Lihat Detail --}}
                                         <a href="{{ route('pengaduan.show', $p->id) }}"
                                            class="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200
                                                   text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition"
@@ -336,9 +296,7 @@
 
                                     </div>
                                 </td>
-
                             </tr>
-
                         @empty
                             <tr>
                                 <td colspan="8" class="py-20 text-center">
@@ -360,7 +318,6 @@
                 </table>
             </div>
 
-            {{-- Pagination --}}
             <div class="px-6 py-3 border-t border-slate-100 bg-slate-50/50">
                 {{ $pengaduans->links() }}
             </div>

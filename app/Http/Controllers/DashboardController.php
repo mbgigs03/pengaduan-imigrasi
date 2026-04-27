@@ -103,7 +103,18 @@ class DashboardController extends Controller
         // ── Tabel pengaduan dengan eager loading ──────────────
         $q = Pengaduan::with('tindakLanjut:id,pengaduan_id,catatan_petugas');
  
-        if ($kw)     $q->where(fn($x) => $x->where('nama', 'like', "%$kw%")->orWhere('nomor_tiket', 'like', "%$kw%"));
+        // DashboardController@tikkim — ganti blok keyword
+        if ($kw) {
+            $isTicket = preg_match('/^IMI-\d{8}-\d+$/i', trim($kw));
+            $q->where(function ($x) use ($kw, $isTicket) {
+                if ($isTicket) {
+                    $x->where('nomor_tiket', strtoupper(trim($kw)));
+                } else {
+                    $x->where('nama', 'like', "%$kw%")
+                    ->orWhere('nomor_tiket', 'like', "%$kw%");
+                }
+            });
+        }
         if ($status) $q->where('status', $status);
         if ($seksiF) $q->where('seksi_tujuan', $seksiF);
         if ($kanalF) $q->where('kanal_pengaduan', $kanalF);
@@ -135,9 +146,14 @@ class DashboardController extends Controller
 
         // FILTER
         if ($keyword) {
-            $query->where(function ($q) use ($keyword) {
-                $q->where('nama', 'like', "%$keyword%")
-                ->orWhere('nomor_tiket', 'like', "%$keyword%");
+            $isTicket = preg_match('/^IMI-\d{8}-\d+$/i', trim($keyword));
+            $query->where(function ($q) use ($keyword, $isTicket) {
+                if ($isTicket) {
+                    $q->where('nomor_tiket', strtoupper(trim($keyword)));
+                } else {
+                    $q->where('nama', 'like', "%$keyword%")
+                    ->orWhere('nomor_tiket', 'like', "%$keyword%");
+                }
             });
         }
 

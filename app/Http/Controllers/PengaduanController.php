@@ -30,6 +30,20 @@ class PengaduanController extends Controller
                 $query->where('seksi_tujuan', $request->seksi);
             }
 
+            // PengaduanController@index — tambah setelah filter seksi
+            if ($request->filled('keyword')) {
+                $kw = trim($request->keyword);
+                $isTicket = preg_match('/^IMI-\d{8}-\d+$/i', $kw);
+                $query->where(function ($q) use ($kw, $isTicket) {
+                    if ($isTicket) {
+                        $q->where('nomor_tiket', strtoupper($kw));
+                    } else {
+                        $q->where('nama', 'like', "%$kw%")
+                        ->orWhere('nomor_tiket', 'like', "%$kw%");
+                    }
+                });
+            }
+
             $pengaduans = $query->orderBy('created_at', 'desc')->paginate(10);
 
             return view('pengaduan.index', compact('pengaduans', 'kanalList'));
@@ -46,7 +60,9 @@ class PengaduanController extends Controller
             'seksi_tujuan' => 'required|string',
             'kanal'        => 'required|string',
             'aduan'        => 'required|string',
-            'bukti'        => 'nullable|image|mimes:jpg,png,jpeg|max:10240',
+            'bukti'        => 'nullable|array|max:5',
+            'bukti.*'      => 'nullable|image|mimes:jpg,png,jpeg,webp|max:10240',
+            'foto_ktp' => 'nullable|image|mimes:jpg,png,jpeg,webp|max:10240',
         ]);
 
         $pengaduan                         = new Pengaduan();
@@ -65,14 +81,37 @@ class PengaduanController extends Controller
         $pengaduan->save();
 
         if ($request->hasFile('bukti')) {
-            $file = $request->file('bukti');
-        
+            $uploadedUrls = [];
+
+            foreach ($request->file('bukti') as $file) {
+                // 1. Upload file ke S3 (Supabase)
+                // $path ini akan bernilai: "pengaduan/IMI-20260423-005/namafile.jpg"
+                $path = Storage::disk('supabase')->put(
+                    "pengaduan/{$pengaduan->nomor_tiket}",
+                    $file
+                );
+
+                // 2. Rakit URL secara manual. 
+                // PASTIKAN: Tidak ada pemanggilan fungsi Storage::url() sama sekali di baris ini!
+                $uploadedUrls[] = "https://crgjblwavebvnvvdnzbk.supabase.co/storage/v1/object/public/pengaduan/" . $path;
+            }
+
+            // Simpan JSON array ke kolom baru
+            $pengaduan->bukti_files = $uploadedUrls;
+
+            // Backward compat: kolom lama tetap diisi foto pertama
+            $pengaduan->bukti = $uploadedUrls[0] ?? null;
+
+            $pengaduan->save();
+        }
+
+        // Ganti blok if ($request->hasFile('foto_ktp')) yang lama dengan:
+        if ($request->hasFile('foto_ktp')) {
             $path = Storage::disk('supabase')->put(
                 "pengaduan/{$pengaduan->nomor_tiket}",
-                $file
+                $request->file('foto_ktp')
             );
-        
-            $pengaduan->bukti = Storage::disk('supabase')->url($path);
+            $pengaduan->foto_ktp = "https://crgjblwavebvnvvdnzbk.supabase.co/storage/v1/object/public/pengaduan/" . $path;
             $pengaduan->save();
         }
 
@@ -465,14 +504,31 @@ HTML;
     }
 
     // ─── Method lainnya ────────────────────────────────────────
-    public function create()   { return view('pengaduan.create'); }
-    public function track()    { return view('pengaduan.track'); }
+    public function create()
+    {
+        if (Auth::check()) {
+            return view('pengaduan.create');        // dashboard layout
+        }
+        return view('pengaduan.create-public');     // standalone publik
+    }
+
+    public function track()
+    {
+        if (Auth::check()) {
+            return view('pengaduan.track');         // dashboard layout
+        }
+        return view('pengaduan.track-public');      // standalone publik
+    }
 
     public function searchTrack(Request $request)
     {
         $request->validate(['nomor_tiket' => 'required|string']);
         $pengaduan = Pengaduan::where('nomor_tiket', $request->nomor_tiket)->first();
-        return view('pengaduan.track', compact('pengaduan'));
+
+        if (Auth::check()) {
+            return view('pengaduan.track', compact('pengaduan'));
+        }
+        return view('pengaduan.track-public', compact('pengaduan'));
     }
 
     public function updateStatus(Request $request, Pengaduan $pengaduan)
