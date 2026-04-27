@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 
 class RekapitulasiController extends Controller
 {
@@ -103,29 +104,59 @@ class RekapitulasiController extends Controller
             'periode'    => $this->repo->periodeLabel($filters),
         ];
     }
+private function buildFilters(array $validated): array
+{
+    $user = Auth::user();
+    $filters = $validated;
 
-    // ═══════════════════════════════════════════════════════════
-    // BUILD FILTERS — tambahkan scope seksi otomatis
-    // ═══════════════════════════════════════════════════════════
-    private function buildFilters(array $validated): array
-    {
-        $user = Auth::user();
-        $filters = $validated;
-
-        // 1. Logika Hak Akses Berdasarkan Role
-        if ($user->profile->role === 'seksi') {
-            // Admin Seksi dikunci ke unit mereka sendiri
-            $filters['seksi'] = $user->profile->seksi;
-        } elseif ($user->profile->role === 'tikkim') {
-            // Super Admin (Tikkim) bisa memilih seksi dari request
-            $filters['seksi'] = $validated['seksi'] ?? null;
-        }
-
-        // 2. Default periode
-        if (empty($filters['periode'])) {
-            $filters['periode'] = 'monthly';
-        }
-
-        return $filters;
+    // ═══════════════════════════════════════
+    // 1. HANDLE ROLE SEKSI
+    // ═══════════════════════════════════════
+    if ($user->profile->role === 'seksi') {
+        $filters['seksi'] = $user->profile->seksi;
+    } elseif ($user->profile->role === 'tikkim') {
+        $filters['seksi'] = $validated['seksi'] ?? null;
     }
+
+    // ═══════════════════════════════════════
+    // 2. DEFAULT PERIODE
+    // ═══════════════════════════════════════
+    $periode = $filters['periode'] ?? 'monthly';
+
+    $now = Carbon::now();
+
+    switch ($periode) {
+        case 'daily':
+            $filters['start_date'] = $now->copy()->startOfDay();
+            $filters['end_date']   = $now->copy()->endOfDay();
+            break;
+
+        case 'weekly':
+            $filters['start_date'] = $now->copy()->subDays(6)->startOfDay();
+            $filters['end_date']   = $now->copy()->endOfDay();
+            break;
+
+        case 'monthly':
+            $filters['start_date'] = $now->copy()->startOfMonth();
+            $filters['end_date']   = $now->copy()->endOfMonth();
+            break;
+
+        case 'yearly':
+            $filters['start_date'] = $now->copy()->startOfYear();
+            $filters['end_date']   = $now->copy()->endOfYear();
+            break;
+
+        case 'custom':
+            // pakai input user (sudah divalidasi)
+            break;
+
+        default:
+            // semua data (no filter tanggal)
+            $filters['start_date'] = null;
+            $filters['end_date']   = null;
+            break;
+    }
+
+    return $filters;
+}
 }
