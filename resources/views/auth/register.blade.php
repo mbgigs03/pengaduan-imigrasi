@@ -159,7 +159,19 @@
                     <label class="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">
                         Role / Jabatan
                     </label>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-3 gap-3">
+
+                        {{-- Card Kakanim --}}
+                        <label class="role-card" onclick="setRole('kakanim')">
+                            <input type="radio" name="role" value="kakanim" {{ old('role') == 'kakanim' ? 'checked' : '' }}>
+                            <div class="card-inner">
+                                <div class="role-icon">🏛️</div>
+                                <div>
+                                    <div class="text-sm font-bold text-slate-800">Kakanim</div>
+                                    <div class="text-xs text-slate-500 leading-tight">Laporan Eksekutif</div>
+                                </div>
+                            </div>
+                        </label>
 
                         <label class="role-card" onclick="setRole('tikkim')">
                             <input type="radio" name="role" value="tikkim" {{ old('role') == 'tikkim' ? 'checked' : '' }}>

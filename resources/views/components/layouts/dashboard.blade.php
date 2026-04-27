@@ -106,22 +106,46 @@
                 @endif
 
                 {{-- SLA dengan badge counter --}}
-                @php
-                    $slaOverCount = \App\Models\Pengaduan::where('status','!=','selesai')
-                        ->where('deadline_tindak_lanjut','<',now())->count();
-                @endphp
-                <a href="{{ route('pengaduan.sla') }}"
-                   class="nav-item {{ request()->routeIs('pengaduan.sla') ? 'active' : '' }}">
-                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span class="nav-label">Monitoring SLA</span>
-                    @if ($slaOverCount > 0)
-                        <span class="nav-label ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold">
-                            {{ $slaOverCount > 99 ? '99+' : $slaOverCount }}
-                        </span>
+                    @php
+                        $user = auth()->user()->profile;
+                        $userRole = $user->role;
+                        $userSeksi = $user->seksi;
+
+                        // 1. Inisialisasi Query berdasarkan Tabel 'pengaduans'
+                        $slaQuery = \App\Models\Pengaduan::where('status', '!=', 'selesai')
+                                    ->where('deadline_tindak_lanjut', '<', now());
+
+                        // 2. Filter berdasarkan kolom 'seksi_tujuan' jika role adalah seksi
+                        if (in_array($userRole, ['seksi'])) {
+                            $slaQuery->where('seksi_tujuan', $userSeksi);
+                        } 
+                        
+                        $slaOverCount = $slaQuery->count();
+                    @endphp
+
+                    {{-- Navigasi Monitoring SLA --}}
+                    @if(in_array($userRole, ['kakanim', 'pimpinan', 'tikkim', 'seksi']))
+                        <a href="{{ route('pengaduan.sla') }}"
+                        class="nav-item {{ request()->routeIs('pengaduan.sla') ? 'active' : '' }}">
+                            <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            
+                            <span class="nav-label">
+                                @if(in_array($userRole, ['seksi']))
+                                    SLA {{ $userSeksi }}
+                                @else
+                                    Monitoring SLA
+                                @endif
+                            </span>
+
+                            @if ($slaOverCount > 0)
+                                <span class="nav-label ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                                    {{ $slaOverCount > 99 ? '99+' : $slaOverCount }}
+                                </span>
+                            @endif
+                        </a>
                     @endif
-                </a>
 
                 @if (in_array(auth()->user()->profile->role, ['tikkim', 'seksi']))
                     <a href="{{ route('rekapitulasi.index') }}"
@@ -133,24 +157,28 @@
                     </a>
                 @endif
 
-                {{-- Layanan --}}
-                <p class="nav-section-label text-[10px] font-bold text-slate-600 uppercase tracking-widest px-3 mb-2 mt-5">Layanan</p>
+                {{-- Layanan - Disembunyikan untuk Kakanim --}}
+                @if (auth()->user()->profile->role !== 'kakanim')
+                    <p class="nav-section-label text-[10px] font-bold text-slate-600 uppercase tracking-widest px-3 mb-2 mt-5">
+                        Layanan
+                    </p>
 
-                <a href="{{ route('pengaduan.create') }}"
-                   class="nav-item {{ request()->routeIs('pengaduan.create') ? 'active' : '' }}">
-                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                    </svg>
-                    <span class="nav-label">Form Pengaduan</span>
-                </a>
+                    <a href="{{ route('pengaduan.create') }}"
+                    class="nav-item {{ request()->routeIs('pengaduan.create') ? 'active' : '' }}">
+                        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        <span class="nav-label">Form Pengaduan</span>
+                    </a>
 
-                <a href="{{ route('pengaduan.track') }}"
-                   class="nav-item {{ request()->routeIs('pengaduan.track') ? 'active' : '' }}">
-                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    </svg>
-                    <span class="nav-label">Lacak Tiket</span>
-                </a>
+                    <a href="{{ route('pengaduan.track') }}"
+                    class="nav-item {{ request()->routeIs('pengaduan.track') ? 'active' : '' }}">
+                        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        <span class="nav-label">Lacak Tiket</span>
+                    </a>
+                @endif
 
                 {{-- Akun --}}
                 <p class="nav-section-label text-[10px] font-bold text-slate-600 uppercase tracking-widest px-3 mb-2 mt-5">Akun</p>
@@ -217,16 +245,31 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
+                    <!-- {{-- Notifikasi SLA (Yang sudah ada) --}}
                     <a href="{{ route('pengaduan.sla') }}"
-                       class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 transition relative">
+                    class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 transition relative">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                         </svg>
                         @if ($slaOverCount > 0)
                             <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
                         @endif
+                    </a> -->
+
+                    {{-- NOTIFIKASI UMUM (TAMBAHAN BARU) --}}
+                    <a href="{{ route('notifikasi.index') }}"
+                    class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 transition relative">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        {{-- Badge angka muncul otomatis via JS --}}
+                        <span id="notif-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center border-2 border-white">
+                            0
+                        </span>
                     </a>
-                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+
+                    {{-- User Avatar --}}
+                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold ml-1">
                         {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
                     </div>
                 </div>
@@ -251,7 +294,35 @@
             </main>
         </div>
     </div>
+    
+    <script>
+        function refreshNotificationBadge() {
+            fetch("{{ route('notifikasi.count') }}", {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.getElementById('notif-badge');
+                if (badge) {
+                    if (data.count > 0) {
+                        badge.textContent = data.count > 99 ? '99+' : data.count;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            })
+            .catch(error => console.error('Gagal mengambil notifikasi:', error));
+        }
 
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshNotificationBadge(); // Cek saat halaman pertama kali dimuat
+            setInterval(refreshNotificationBadge, 60000); // Cek ulang setiap 60 detik
+        });
+    </script>
     {{ $scripts ?? '' }}
 </body>
 </html>

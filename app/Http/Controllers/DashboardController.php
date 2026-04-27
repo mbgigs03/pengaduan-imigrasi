@@ -30,6 +30,11 @@ class DashboardController extends Controller
         if ($profile->role === 'seksi' || $profile->role === 'admin') {
             return $this->seksi(request());
         }
+        if ($profile->role === 'kakanim') {
+            return redirect()->route('kakanim.dashboard');
+        }
+
+         // Default fallback (jika role tidak dikenali)
 
         return redirect()->route('pengaduan.landing');
     }

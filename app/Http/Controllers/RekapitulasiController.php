@@ -59,19 +59,13 @@ class RekapitulasiController extends Controller
         ]);
 
         $filters = $this->buildFilters($validated);
-        
-        // Ambil data tanpa pagination untuk laporan PDF
-        $pengaduans = $this->repo->all($filters); 
-        $summary    = $this->repo->summary($filters);
-        $periode    = $this->repo->periodeLabel($filters);
+
+        $data = $this->getFilteredData($filters);
 
         $pdf = Pdf::loadView('rekapitulasi.pdf', [
-            'pengaduans' => $pengaduans,
-            'summary'    => $summary,
-            'periode'    => $periode,
-            'filters'    => $filters
-            
-        ])->setPaper('a4', 'landscape'); // Landscape biasanya lebih cocok untuk tabel rekap
+            ...$data,
+            'filters' => $filters
+        ])->setPaper('a4', 'landscape');
 
         return $pdf->download('Rekap-Pengaduan-' . now()->format('Ymd-His') . '.pdf');
     }
@@ -99,6 +93,15 @@ class RekapitulasiController extends Controller
             $filename,
             \Maatwebsite\Excel\Excel::XLSX
         );
+    }
+
+        private function getFilteredData(array $filters)
+    {
+        return [
+            'pengaduans' => $this->repo->all($filters),
+            'summary'    => $this->repo->summary($filters),
+            'periode'    => $this->repo->periodeLabel($filters),
+        ];
     }
 
     // ═══════════════════════════════════════════════════════════

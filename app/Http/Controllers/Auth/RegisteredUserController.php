@@ -34,7 +34,7 @@ class RegisteredUserController extends Controller
             'name'     => ['required', 'string', 'max:255'],
             'nip'      => ['nullable', 'string', 'max:20'],
             'email'    => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'role'     => ['required', 'in:tikkim,seksi'],
+            'role'     => ['required', 'in:tikkim,seksi,kakanim'],
             'seksi'    => ['required_if:role,seksi', 'nullable', 'string', 'max:255'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ], [

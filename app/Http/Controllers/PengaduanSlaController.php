@@ -84,7 +84,7 @@ class PengaduanSlaController extends Controller
         ");
 
         // ── Paginate + append filter ke link halaman ──────────
-        $pengaduans = $query->paginate(20)->withQueryString();
+        $pengaduans = $query->paginate(10)->withQueryString();
 
         // Hitung sla_status di PHP (satu kali per item, tidak ada query tambahan)
         $pengaduans->getCollection()->transform(function ($p) {

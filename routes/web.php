@@ -6,6 +6,8 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TindakLanjutController;
 use App\Http\Controllers\RekapitulasiController;
 use App\Http\Controllers\PengaduanSlaController;
+use App\Http\Controllers\KakanimController;
+use App\Http\Controllers\NotifikasiController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -39,6 +41,11 @@ Route::get('/pengaduan/{nomorTiket}/pdf', [PengaduanController::class, 'download
 
 Route::middleware('auth')->group(function () {
 
+
+    // // Opsi A: Jika ingin nama routenya 'dashboard.kakanim'
+    
+    // // Route Alert untuk Kakanim
+
     /*
     |----------------------------------------------------------------------
     | DASHBOARD — auto-redirect sesuai role (tikkim/seksi)
@@ -64,6 +71,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/pengaduan/sla', [PengaduanController::class, 'sla'])->name('pengaduan.sla');
         
     });
+
+        
 
     /*
 |--------------------------------------------------------------------------
@@ -126,6 +135,35 @@ Route::middleware(['auth', 'role:tikkim,seksi'])->group(function () {
      // ── Monitoring SLA (halaman terpisah) ────────────────────
     Route::get('/pengaduan/sla', [PengaduanSlaController::class, 'index'])
         ->name('pengaduan.sla');
+
+    Route::prefix('notifikasi')->group(function () {
+        Route::get('/', [NotifikasiController::class, 'index'])->name('notifikasi.index');
+        Route::get('/count', [NotifikasiController::class, 'count'])->name('notifikasi.count');
+        
+        // Perhatikan penamaan endpoint ini agar sesuai dengan fetch API di Javascript Anda
+        Route::post('/{notifikasi}/read', [NotifikasiController::class, 'markRead'])->name('notifikasi.markRead');
+        Route::post('/read-all', [NotifikasiController::class, 'markAllRead'])->name('notifikasi.markAllRead');
+    });
+});
+
+Route::middleware(['auth'])->group(function () {
+    
+    // Prefix 'kakanim' untuk merapikan URL
+    Route::prefix('kakanim')->name('kakanim.')->group(function () {
+        
+        // Dashboard Utama (Method index)
+        Route::get('/dashboard', [KakanimController::class, 'index'])->name('dashboard');
+
+        // Route yang error tadi (Method sendAlert)
+        // URL: /kakanim/alert
+        Route::post('/alert', [KakanimController::class, 'sendAlert'])->name('alert');
+
+        // Mark Notification as Read (Method markRead)
+        // URL: /kakanim/notif/{notifikasi}/baca
+        Route::post('/notif/{notifikasi}/baca', [KakanimController::class, 'markRead'])->name('notif.read');
+        
+    });
+
 });
 
 /*

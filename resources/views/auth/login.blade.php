@@ -70,28 +70,29 @@
 
     <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden flex min-h-[520px]">
 
-        {{-- KIRI: Branding --}}
+        {{-- KIRI: Branding RUMANGSA --}}
         <div class="split-left hidden md:flex flex-col justify-between p-10 w-2/5 text-white relative z-10">
             <div>
-                <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center mb-8">
-                    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"/>
-                    </svg>
+                <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-8 backdrop-blur-sm">
+                    <img src="../images/logo-png.png" class="w-6" alt="Logo">
                 </div>
-                <h2 class="text-2xl font-extrabold leading-tight mb-3">
-                    Sistem Pengaduan<br>Imigrasi
+                <h2 class="text-3xl font-extrabold leading-tight mb-3">
+                    RUMANGSA
                 </h2>
-                <p class="text-blue-200 text-sm leading-relaxed">
-                    Portal internal untuk petugas TIKKIM dan Admin Seksi dalam mengelola aduan masyarakat.
+                <p class="text-blue-100 text-sm leading-relaxed opacity-90">
+                    Ruang Manajemen Pengaduan dengan Integrasi Sistem Digital.
+                    <br><span class="font-semibold text-white">Kantor Imigrasi Kelas II Non TPI Madiun.</span>
                 </p>
             </div>
+
             <div class="space-y-3">
+                {{-- Fitur Utama sesuai RAP --}}
                 @foreach([
-                    ['God View', 'Pantau semua seksi sekaligus', '🔭'],
-                    ['SLA Monitor', 'Notifikasi deadline otomatis', '⏱'],
-                    ['Audit Trail', 'Riwayat tindak lanjut tercatat', '📋'],
+                    ['Pusat Kendali', 'Dashboard monitoring real-time Kakanim', '🏢'],
+                    ['Manajemen Seksi', 'Disposisi aduan ke tiap sub-seksi', '📑'],
+                    ['SLA Tracking', 'Pengawasan batas waktu tindak lanjut', '⚖️'],
                 ] as $f)
-                    <div class="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-3">
+                    <div class="flex items-center gap-3 bg-white/10 border border-white/10 rounded-xl px-4 py-3 backdrop-blur-md">
                         <span class="text-lg">{{ $f[2] }}</span>
                         <div>
                             <div class="text-xs font-bold text-white">{{ $f[0] }}</div>

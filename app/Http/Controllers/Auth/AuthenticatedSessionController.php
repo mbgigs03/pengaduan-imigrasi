@@ -11,6 +11,18 @@ use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
 {
+
+    public function index()
+    {
+        $role = auth()->user()->profile->role;
+
+        return match($role) {
+            'kakanim' => redirect()->route('kakanim.dashboard'),
+            'tikkim'  => view('dashboard.tikkim'),
+            'seksi'   => view('dashboard.seksi'),
+            default   => redirect()->route('pengaduan.landing'),
+        };
+    }
     /**
      * Display the login view.
      */

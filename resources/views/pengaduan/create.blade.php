@@ -42,7 +42,7 @@
                     </div>
                     <div>
                         <x-input-label for="nik" :value="__('NIK (16 Digit)')" />
-                        <x-text-input id="nik" name="nik" type="text" maxlength="16" class="mt-1 block w-full" required />
+                        <x-text-input id="nik" name="nik" type="text" placeholder="35..." maxlength="16" class="mt-1 block w-full" required />
                     </div>
 
                     <div>
