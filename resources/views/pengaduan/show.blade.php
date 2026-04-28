@@ -337,10 +337,12 @@
 
                 <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-400">
                     @if ($tl->updated_at)
-                        <span>Diperbarui {{ \Carbon\Carbon::parse($tl->updated_at)->translatedFormat('d F Y, H:i') }}</span>
+                        <span>Diperbarui {{ \Carbon\Carbon::parse($tl->updated_at)->translatedFormat('d F Y, H:i')}}</span>
                     @endif
+                    {{-- Cari bagian ini di file Blade kamu dan ubah --}}
                     @if ($tl->petugas ?? null)
-                        <span>· oleh <strong class="text-slate-600">{{ $tl->petugas }}</strong></span>
+                        {{-- Jika $tl->petugas adalah objek, panggil property 'name' --}}
+                        <span>| oleh <strong class="text-slate-600">{{ is_object($tl->petugas) ? $tl->petugas->name : (is_array($tl->petugas) ? $tl->petugas['name'] : $tl->petugas) }}</strong></span>
                     @endif
                 </div>
             </div>

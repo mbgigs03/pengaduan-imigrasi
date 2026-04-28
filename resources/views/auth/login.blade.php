@@ -89,7 +89,7 @@
                 {{-- Fitur Utama sesuai RAP --}}
                 @foreach([
                     ['Pusat Kendali', 'Dashboard monitoring real-time Kakanim', '🏢'],
-                    ['Manajemen Seksi', 'Disposisi aduan ke tiap sub-seksi', '📑'],
+                    ['Manajemen Seksi', 'Disposisi aduan ke tiap seksi', '📑'],
                     ['SLA Tracking', 'Pengawasan batas waktu tindak lanjut', '⚖️'],
                 ] as $f)
                     <div class="flex items-center gap-3 bg-white/10 border border-white/10 rounded-xl px-4 py-3 backdrop-blur-md">

@@ -53,6 +53,16 @@
         .fade-up-2 { animation-delay: .2s; }
         .fade-up-3 { animation-delay: .3s; }
         .fade-up-4 { animation-delay: .4s; }
+
+        .hero-bg {
+        /* Warna Navy Khas Imigrasi */
+        background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 40%, #415a77 100%);
+        }
+        .badge-sla {
+            /* Warna Aksen Emas tipis untuk kesan eksklusif */
+            border: 1px solid rgba(229, 184, 11, 0.3);
+            color: #e5b80b;
+        }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
@@ -62,13 +72,14 @@
         <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-lg bg-blue-700 flex items-center justify-center">
-                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"/>
+                    {{-- Ikon ganti ke logo yang lebih spesifik jika ada --}}
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
-                <span class="font-bold text-slate-800 text-sm">Imigrasi</span>
+                <span class="font-bold text-slate-800 text-lg tracking-tight">RUMANGSA</span>
                 <span class="text-slate-300 text-sm">|</span>
-                <span class="text-slate-500 text-xs">Layanan Pengaduan Masyarakat</span>
+                <span class="text-slate-500 text-xs">Ruang Monitoring & Pengaduan Masyarakat</span>
             </div>
             <div class="flex items-center gap-2">
                 @auth
@@ -76,12 +87,12 @@
                         Dashboard
                     </a>
                 @else
-                    <a href="{{ route('login') }}" class="text-sm text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg transition">
+                    <a href="{{ route('login') }}" class="text-sm font-semibold text-white bg-blue-700 hover:bg-blue-800 px-4 py-1.5 rounded-lg transition">
                         Masuk
                     </a>
-                    <a href="{{ route('register') }}" class="text-sm font-semibold text-white bg-blue-700 hover:bg-blue-800 px-4 py-1.5 rounded-lg transition">
+                    <!-- <a href="{{ route('register') }}" class="text-sm font-semibold text-white bg-blue-700 hover:bg-blue-800 px-4 py-1.5 rounded-lg transition">
                         Daftar Petugas
-                    </a>
+                    </a> -->
                 @endauth
             </div>
         </div>
@@ -94,12 +105,13 @@
                 <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block"></span>
                 Sistem berjalan normal · SLA 3 hari kerja
             </div>
-            <h1 class="fade-up fade-up-2 text-4xl md:text-5xl font-extrabold text-white leading-tight mb-4">
-                Layanan Pengaduan<br>
-                <span class="text-blue-200">Masyarakat Imigrasi</span>
+            {{-- HERO UPDATE --}}
+            <h1 class="fade-up fade-up-2 text-4xl md:text-6xl font-extrabold text-white leading-tight mb-4">
+                Aplikasi <span class="text-blue-200">RUMANGSA</span>
             </h1>
-            <p class="fade-up fade-up-3 text-blue-100 text-base max-w-xl mx-auto leading-relaxed">
-                Sampaikan keluhan, saran, atau pertanyaan Anda kepada kami. Setiap aduan ditangani secara transparan dan terukur.
+            <p class="fade-up fade-up-3 text-blue-100 text-lg max-w-2xl mx-auto leading-relaxed">
+                <strong>Ruang Monitoring & Pengaduan Masyarakat</strong><br>
+                Transformasi digital pengawasan pelayanan publik pada <br>Kantor Imigrasi Kelas II Non TPI Madiun.
             </p>
         </div>
     </div>
@@ -164,11 +176,68 @@
             </div>
         </div>
 
-        {{-- FOOTER NOTE --}}
-        <p class="text-center text-slate-400 text-xs">
-            Layanan ini dikelola oleh Kantor Imigrasi · Kerahasiaan data pemohon dijaga sepenuhnya
-        </p>
     </div>
+    {{-- FOOTER --}}
+    <footer class="bg-white border-t border-slate-200 pt-12 pb-8">
+        <div class="max-w-5xl mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                
+                {{-- Kolom 1: Branding --}}
+                <div class="space-y-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded bg-slate-800 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <span class="font-bold text-slate-800 tracking-tight">RUMANGSA</span>
+                    </div>
+                    <p class="text-slate-500 text-xs leading-relaxed">
+                        Sistem informasi pelayanan pengaduan terpadu untuk mewujudkan keterbukaan informasi dan pelayanan prima di wilayah kerja Madiun.
+                    </p>
+                </div>
+
+                {{-- Kolom 2: Kontak --}}
+                <div class="space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Hubungi Kami</h3>
+                    <ul class="space-y-2">
+                        <li class="flex items-start gap-3 text-xs text-slate-600">
+                            <svg class="w-4 h-4 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            <span>kanim_madiun@imigrasi.go.id</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-xs text-slate-600">
+                            <svg class="w-4 h-4 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            <span>WhatsApp: 0811-3093-000</span>
+                        </li>
+                    </ul>
+                </div>
+
+                {{-- Kolom 3: Lokasi --}}
+                <div class="space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Alamat Kantor</h3>
+                    <div class="flex items-start gap-3 text-xs text-slate-600">
+                        <svg class="w-4 h-4 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        <p class="leading-relaxed">
+                            <strong>Kantor Imigrasi Kelas II Non TPI Madiun</strong><br>
+                            Jl. Panglima Sudirman, Caruban, Kab. Madiun, Jawa Timur
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            {{-- Bottom Copyright --}}
+            <div class="pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-[10px] text-slate-400 font-medium uppercase tracking-widest text-center md:text-left">
+                    © {{ date('Y') }} Kantor Imigrasi Madiun · Proyek Perubahan RUMANGSA
+                </p>
+                <div class="flex items-center gap-4 grayscale opacity-60">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b1/Logo_Kemenkumham_RI.svg" class="h-6" alt="Kemenkumham">
+                    <img src="https://upload.wikimedia.org/wikipedia/id/3/3a/Logo_Imigrasi.png" class="h-6" alt="Imigrasi">
+                </div>
+            </div>
+        </div>
+    </footer>
 
     {{-- SWEETALERT TIKET --}}
     @if (session('tiket'))
