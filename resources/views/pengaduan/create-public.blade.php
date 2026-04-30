@@ -86,6 +86,187 @@
                 }
             }
         }
+
+        function faqPicker() {
+            const templates = {
+                paspor_baru_dewasa: `Persyaratan permohonan paspor baru (dewasa) dengan membawa dokumen ASLI:
+                    1. e-KTP
+                    2. Kartu Keluarga (KK)
+                    3. Akte Lahir / Buku Nikah / Ijazah SD-SMA (pilih salah satu; nama, tempat tanggal lahir, dan nama ayah harus sama dengan e-KTP dan KK)
+                    4. Paspor lama (jika memiliki)
+
+                    Pendaftaran:
+                    - Pemohon usia di bawah 60 tahun wajib mendaftar online melalui aplikasi M-Paspor (Playstore/Appstore)
+                    - Setelah mendaftar dan melakukan pembayaran, datang langsung ke kantor sesuai lokasi dan waktu yang dipilih
+                    - Bawa semua dokumen ASLI untuk proses foto dan wawancara
+
+                    Biaya paspor:
+                    - Elektronik masa berlaku 5 tahun: Rp 650.000
+                    - Elektronik masa berlaku 10 tahun: Rp 950.000
+
+                    Layanan:
+                    - Reguler: paspor jadi 3 hari kerja setelah pembayaran, foto, dan wawancara
+                    - Percepatan: paspor jadi 4 jam (berkas diterima sebelum 10.00 WIB), biaya tambahan Rp 1.000.000`,
+
+                            paspor_anak: `Persyaratan permohonan paspor anak (belum memiliki e-KTP) dengan dokumen ASLI:
+                    1. e-KTP kedua orang tua kandung
+                    2. Kartu Keluarga (KK)
+                    3. Akta Lahir anak
+                    4. Buku / Surat Nikah orang tua; jika bercerai lampirkan surat perceraian
+                    5. Paspor kedua orang tua (jika memiliki)
+                    6. Paspor lama anak (jika memiliki)
+
+                    Ketentuan kehadiran orang tua:
+                    - Kedua orang tua wajib hadir saat proses permohonan
+                    - Jika salah satu tidak bisa hadir, wajib melampirkan surat kuasa bermaterai beserta alasan ketidakhadirannya
+                    - Jika orang tua bercerai dan memiliki hak asuh tertulis dari pengadilan, salah satu orang tua dapat mengurus tanpa kehadiran yang lain
+
+                    Pendaftaran:
+                    - Anak usia di atas 3 tahun wajib daftar online melalui M-Paspor
+                    - Datang sesuai lokasi dan waktu yang dipilih, bawa semua dokumen ASLI
+
+                    Biaya paspor anak:
+                    - Elektronik masa berlaku 5 tahun: Rp 650.000
+
+                    Layanan:
+                    - Reguler: paspor jadi 3 hari kerja setelah pembayaran, foto, dan wawancara
+                    - Percepatan: paspor jadi 4 jam (berkas diterima sebelum 10.00 WIB), biaya tambahan Rp 1.000.000`,
+
+                            paspor_umroh_haji: `Persyaratan permohonan paspor untuk umroh / haji dengan dokumen ASLI:
+                    1. e-KTP
+                    2. Kartu Keluarga (KK)
+                    3. Akte Lahir / Buku Nikah / Ijazah SD-SMA (pilih salah satu)
+                    4. Paspor lama (jika memiliki)
+
+                    Catatan khusus nama satu kata:
+                    Pemohon yang hanya memiliki 1 kata pada nama wajib membawa dokumen tambahan:
+                    - Surat rekomendasi dari travel umroh / haji
+                    - Izin operasional travel umroh
+                    - BPIH bagi calon jamaah haji
+
+                    Pendaftaran:
+                    - Wajib daftar online melalui M-Paspor untuk pemohon usia di bawah 60 tahun
+                    - Datang sesuai lokasi dan waktu yang dipilih dengan membawa semua dokumen ASLI
+
+                    Biaya:
+                    - Elektronik masa berlaku 5 tahun: Rp 650.000
+                    - Elektronik masa berlaku 10 tahun: Rp 950.000
+
+                    Layanan:
+                    - Reguler: paspor jadi 3 hari kerja
+                    - Percepatan: paspor jadi 4 jam (sebelum 10.00 WIB), tambahan Rp 1.000.000`,
+
+                            paspor_cpmi: `Persyaratan permohonan paspor untuk bekerja ke luar negeri (CPMI) dengan dokumen ASLI:
+                    1. e-KTP
+                    2. Kartu Keluarga (KK)
+                    3. Akta Lahir / Ijazah SD-SMA / Buku Nikah
+                    4. Paspor lama (jika memiliki)
+
+                    Kebijakan paspor gratis bagi CPMI:
+                    Berlaku bagi CPMI yang baru pertama kali membuat paspor, datang langsung ke kantor dengan tambahan dokumen:
+                    - ID CPMI yang dikeluarkan oleh BP2MI, ATAU
+                    - Kontrak kerja yang telah ditandatangani secara sah / sertifikat kelulusan program G to G
+
+                    Pendaftaran (bagi yang tidak termasuk paspor gratis):
+                    - Wajib daftar online melalui M-Paspor untuk pemohon usia di bawah 60 tahun
+                    - Datang sesuai lokasi dan waktu yang dipilih dengan membawa semua dokumen ASLI
+
+                    Biaya:
+                    - Elektronik masa berlaku 5 tahun: Rp 650.000
+                    - Elektronik masa berlaku 10 tahun: Rp 950.000
+
+                    Layanan:
+                    - Reguler: paspor jadi 3 hari kerja
+                    - Percepatan: paspor jadi 4 jam (sebelum 10.00 WIB), tambahan Rp 1.000.000`,
+
+                            paspor_rusak: `Prosedur penggantian paspor RUSAK:
+
+                    Datang langsung ke Kantor Imigrasi tanpa mendaftar melalui M-Paspor untuk proses BAP (Berita Acara Pemeriksaan).
+
+                    Dokumen ASLI yang harus dibawa:
+                    1. e-KTP
+                    2. Kartu Keluarga (KK)
+                    3. Akta Lahir / Ijazah SD-SMA / Buku Nikah
+                    4. Paspor yang rusak
+
+                    Biaya:
+                    - Denda paspor rusak: Rp 500.000
+                    - Ditambah biaya jenis paspor yang dipilih:
+                    - Elektronik masa berlaku 5 tahun: Rp 650.000
+                    - Elektronik masa berlaku 10 tahun: Rp 950.000`,
+
+                            paspor_hilang: `Prosedur penggantian paspor HILANG:
+
+                    Langkah pertama: urus Surat Keterangan Kehilangan di kantor kepolisian terdekat.
+
+                    Setelah memiliki surat keterangan kehilangan, datang langsung ke Kantor Imigrasi mulai pukul 08.00 WIB TANPA mendaftar melalui M-Paspor untuk proses BAP.
+
+                    Dokumen ASLI yang harus dibawa:
+                    1. e-KTP
+                    2. Kartu Keluarga (KK)
+                    3. Akta Lahir / Ijazah SD-SMA / Buku Nikah
+                    4. Surat Keterangan Kehilangan dari kepolisian
+
+                    Biaya:
+                    - Denda paspor hilang: Rp 1.000.000
+                    - Ditambah biaya jenis paspor yang dipilih:
+                    - Elektronik masa berlaku 5 tahun: Rp 650.000
+                    - Elektronik masa berlaku 10 tahun: Rp 950.000`,
+
+                            pengambilan_diwakilkan: `Ketentuan pengambilan paspor yang DIWAKILKAN:
+
+                    A. Diwakilkan kepada orang yang BERBEDA Kartu Keluarga:
+                    1. Surat kuasa pengambilan paspor (ditandatangani pemilik paspor di atas materai Rp 10.000)
+                    2. Lembar pengambilan paspor dari petugas foto/wawancara
+                    3. Struk bukti pembayaran paspor
+                    4. e-KTP asli pengambil paspor
+                    5. Fotokopi e-KTP pemilik paspor
+
+                    B. Diwakilkan kepada keluarga dalam SATU Kartu Keluarga:
+                    1. Lembar pengambilan paspor dari petugas foto/wawancara
+                    2. Struk bukti pembayaran paspor
+                    3. Kartu Keluarga asli
+                    4. e-KTP asli pengambil paspor`,
+
+                            pembatalan_paspor: `Permohonan pembatalan paspor.
+
+                    Mohon lengkapi data berikut agar dapat kami teruskan kepada petugas:
+
+                    - Nama Lengkap Pemohon Paspor    :
+                    - Alamat                          :
+                    - Nomor WhatsApp                  :
+                    - Tanggal Permohonan Paspor       :
+                    - Lokasi Foto & Wawancara         :
+                    - Alasan Pembatalan               :`,
+
+                            kekurangan_berkas: `Perihal kekurangan berkas / catatan dari petugas.
+
+                    Mohon informasikan:
+                    - Nama lengkap pemohon            :
+                    - Tanggal kunjungan ke kantor     :
+                    - Jenis layanan yang diajukan     :
+                    - Catatan / berkas yang kurang    :
+
+                    Jika ada lembar catatan kekurangan berkas dari petugas, mohon lampirkan foto lembar tersebut pada kolom bukti di bawah.`,
+
+                            lainnya: '',
+                        };
+
+                        return {
+                            topik: '',
+                            currentTemplate: '',
+                            applyTemplate() {
+                                this.currentTemplate = templates[this.topik] ?? '';
+                                
+                                // Sync ke textarea asli jika perlu
+                                const textarea = document.getElementById('aduan');
+                                if (textarea) {
+                                    textarea.value = this.currentTemplate;
+                                    textarea.dispatchEvent(new Event('input'));
+                                }
+                            }
+                        };
+        }
     </script>
 </head>
 
@@ -125,9 +306,7 @@
 
     {{-- MAIN FORM CONTAINER --}}
     <div class="max-w-4xl w-full mx-auto px-4 -mt-12 relative z-10 pb-16 flex-grow fade-up fade-up-1">
-        
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            
             <div class="p-6 md:p-8">
                 @if ($errors->any())
                     <div class="mb-8 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl flex items-start gap-3">
@@ -143,10 +322,11 @@
                     </div>
                 @endif
 
-                <form action="{{ route('pengaduan.store') }}" method="POST" enctype="multipart/form-data" x-data="{ jenis: '{{ old('jenis_layanan') }}' }">
+                <form action="{{ route('pengaduan.store') }}" method="POST" enctype="multipart/form-data" 
+                    x-data="{ topik: '', jenis: '{{ old('jenis_layanan') }}', currentTemplate: '', ...faqPicker() }">
                     @csrf
 
-                    {{-- Data Diri Section --}}
+                    {{-- 1. Informasi Pemohon (Selalu Muncul) --}}
                     <div class="mb-8">
                         <h3 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2 flex items-center gap-2">
                             <span class="bg-blue-100 text-blue-700 w-6 h-6 rounded-md flex items-center justify-center text-xs">1</span>
@@ -176,133 +356,154 @@
                         </div>
                     </div>
 
-                    {{-- Detail Aduan Section --}}
+                    {{-- 2. Gatekeeper: Topik Pertanyaan (FAQ Picker) --}}
                     <div class="mb-8">
                         <h3 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2 flex items-center gap-2">
                             <span class="bg-blue-100 text-blue-700 w-6 h-6 rounded-md flex items-center justify-center text-xs">2</span>
-                            Detail Laporan
-                        </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-                            <div>
-                                <x-input-label for="jenis_layanan" :value="__('Jenis Layanan')" class="text-slate-700 font-semibold" />
-                                <select x-model="jenis" name="jenis_layanan" class="mt-1 block w-full rounded-xl border-slate-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm transition bg-white" required>
-                                    <option value="">-- Pilih Jenis --</option>
-                                    <option value="informasi"  {{ old('jenis_layanan') === 'informasi'  ? 'selected' : '' }}>Pemberian Informasi</option>
-                                    <option value="penanganan" {{ old('jenis_layanan') === 'penanganan' ? 'selected' : '' }}>Penanganan Pengaduan</option>
-                                </select>
-                                
-                                <div class="mt-2 p-3 bg-blue-50 rounded-xl text-xs text-blue-800 border border-blue-100 flex items-start gap-2 transition-all">
-                                    <svg class="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    <template x-if="jenis === 'informasi'">
-                                        <span>Layanan bagi pemohon yang membutuhkan data atau kejelasan prosedur keimigrasian.</span>
-                                    </template>
-                                    <template x-if="jenis === 'penanganan'">
-                                        <span>Layanan bagi pemohon yang ingin menyampaikan keluhan atau ketidakpuasan layanan.</span>
-                                    </template>
-                                    <template x-if="jenis === ''">
-                                        <span class="text-slate-500 italic">Silakan pilih jenis layanan terlebih dahulu.</span>
-                                    </template>
-                                </div>
-                            </div>
-                            <div>
-                                <x-input-label for="seksi_tujuan" :value="__('Kategori / Seksi Tujuan')" class="text-slate-700 font-semibold" />
-                                <select name="seksi_tujuan" class="mt-1 block w-full rounded-xl border-slate-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm transition bg-white" required>
-                                    <option value="">-- Pilih Kategori --</option>
-                                    <option value="Tikkim"         {{ old('seksi_tujuan') === 'Tikkim'         ? 'selected' : '' }}>Pelayanan Paspor (Tikkim)</option>
-                                    <option value="Doklanintalkim" {{ old('seksi_tujuan') === 'Doklanintalkim' ? 'selected' : '' }}>[WNI] Dokumen Perjalanan (Doklanintal)</option>
-                                    <option value="Doklanintalkim" {{ old('seksi_tujuan') === 'Doklanintalkim' ? 'selected' : '' }}>[WNA] Pelayanan Izin Tinggal (Doklanintal)</option>
-                                    <option value="Inteldakim"     {{ old('seksi_tujuan') === 'Inteldakim'     ? 'selected' : '' }}>[WNA] Pengawasan Orang Asing (Inteldak)</option>
-                                    <option value="Inteldakim"     {{ old('seksi_tujuan') === 'Inteldakim'     ? 'selected' : '' }}>Alur BAP (Inteldak)</option>
-                                    <option value="Tata Usaha"     {{ old('seksi_tujuan') === 'Tata Usaha'     ? 'selected' : '' }}>Sarana Prasarana (Tata Usaha)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="mb-5">
-                            <x-input-label :value="__('Sumber / Kanal Pengaduan')" class="text-slate-700 font-semibold mb-2" />
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                @foreach(['Ruang Pengaduan', 'WhatsApp', 'Instagram', 'TikTok', 'Facebook', 'Lainnya'] as $k)
-                                    <label class="group relative flex items-center cursor-pointer">
-                                        <input type="radio" name="kanal" value="{{ $k }}" class="peer sr-only" {{ old('kanal') === $k ? 'checked' : '' }} required>
-                                        <div class="w-full flex items-center gap-3 p-3 border border-slate-200 rounded-xl hover:bg-slate-50 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:ring-1 peer-checked:ring-blue-500 transition duration-200">
-                                            <div class="w-4 h-4 rounded-full border border-slate-300 peer-checked:border-blue-600 peer-checked:border-[4px] transition-all bg-white"></div>
-                                            <span class="text-sm text-slate-700 font-medium peer-checked:text-blue-800">{{ $k }}</span>
-                                        </div>
-                                    </label>
-                                @endforeach
-                            </div>
-                        </div>
-
-                        <div>
-                            <x-input-label for="aduan" :value="__('Uraian Laporan / Pertanyaan')" class="text-slate-700 font-semibold" />
-                            <textarea id="aduan" name="aduan" rows="4" class="mt-1 block w-full rounded-xl border-slate-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm transition" placeholder="Jelaskan secara detail dan kronologis terkait pengaduan atau informasi yang Anda butuhkan..." required>{{ old('aduan') }}</textarea>
-                        </div>
-                    </div>
-
-                    {{-- Lampiran Section --}}
-                    <div class="mb-8">
-                        <h3 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2 flex items-center gap-2">
-                            <span class="bg-blue-100 text-blue-700 w-6 h-6 rounded-md flex items-center justify-center text-xs">3</span>
-                            Dokumen Lampiran
+                            Topik Pertanyaan
                         </h3>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {{-- KTP --}}
-                            <div class="bg-slate-50 border border-slate-200 rounded-xl p-5">
-                                <x-input-label :value="__('Foto KTP (Opsional)')" class="text-slate-800 font-bold" />
-                                <p class="text-xs text-slate-500 mb-3">Maksimal 10MB (JPG, PNG). Membantu verifikasi identitas.</p>
-                                <input type="file" name="foto_ktp" accept="image/*" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-white file:text-blue-700 file:shadow-sm hover:file:bg-blue-50 file:border file:border-slate-200 transition cursor-pointer">
-                            </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Pilih Topik Terlebih Dahulu</label>
+                            <select x-model="topik" @change="applyTemplate()"
+                                    class="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition shadow-sm">
+                                <option value="">— Pilih topik atau isi manual —</option>
+                                <optgroup label="Permohonan Paspor">
+                                    <option value="paspor_baru_dewasa">Persyaratan paspor baru (dewasa)</option>
+                                    <option value="paspor_anak">Persyaratan paspor anak</option>
+                                    <option value="paspor_umroh_haji">Paspor untuk umroh / haji</option>
+                                    <option value="paspor_cpmi">Paspor untuk bekerja ke luar negeri (CPMI)</option>
+                                </optgroup>
+                                <optgroup label="Masalah Paspor">
+                                    <option value="paspor_rusak">Penggantian paspor rusak</option>
+                                    <option value="paspor_hilang">Penggantian paspor hilang</option>
+                                </optgroup>
+                                <optgroup label="Layanan Lain">
+                                    <option value="pengambilan_diwakilkan">Pengambilan paspor diwakilkan</option>
+                                    <option value="pembatalan_paspor">Pembatalan permohonan paspor</option>
+                                    <option value="kekurangan_berkas">Kekurangan berkas / catatan petugas</option>
+                                </optgroup>
+                                <option value="lainnya">Lainnya (Aduan Manual)</option>
+                            </select>
+                        </div>
 
-                            {{-- Multi Bukti --}}
-                            <div x-data="buktiUploader()" class="bg-slate-50 border border-slate-200 rounded-xl p-5">
-                                <div class="flex justify-between items-start mb-2">
-                                    <div>
-                                        <x-input-label :value="__('Bukti Pendukung (Opsional)')" class="text-slate-800 font-bold" />
-                                        <p class="text-xs text-slate-500">Maks. 5 foto (10MB/foto).</p>
-                                    </div>
-                                    <span class="text-xs font-bold text-slate-400 bg-slate-200 px-2 py-1 rounded-md" x-text="files.length + '/5'"></span>
+                        {{-- Kotak Jawaban Otomatis (Muncul jika pilih topik FAQ selain "Lainnya") --}}
+                        <div x-show="topik !== '' && topik !== 'lainnya'" x-cloak class="mt-5 transition-all duration-300">
+                            <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 shadow-sm">
+                                <div class="flex items-center gap-2 mb-3 text-blue-800 font-bold">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <span>Informasi Prosedur:</span>
                                 </div>
-
-                                {{-- Drop zone --}}
-                                <label class="mt-3 flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer bg-white hover:bg-blue-50 hover:border-blue-400 transition-all group"
-                                    @dragover.prevent="dragging = true"
-                                    @dragleave.prevent="dragging = false"
-                                    @drop.prevent="handleDrop($event)"
-                                    :class="dragging ? 'border-blue-400 bg-blue-50' : ''">
-                                    <div class="flex flex-col items-center gap-1 text-slate-400 group-hover:text-blue-500 transition-colors">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                        <span class="text-sm font-medium">Klik atau drag foto</span>
-                                    </div>
-                                    <input type="file" name="bukti[]" multiple accept="image/*" class="hidden" @change="handleFiles($event)">
-                                </label>
-
-                                {{-- Preview grid --}}
-                                <div x-show="previews.length > 0" x-cloak class="mt-3 flex gap-2 overflow-x-auto custom-scroll pb-2">
-                                    <template x-for="(src, i) in previews" :key="i">
-                                        <div class="relative group w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shadow-sm">
-                                            <img :src="src" class="w-full h-full object-cover">
-                                            <button type="button" @click="removeFile(i)" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold leading-none shadow-sm hover:bg-red-600">
-                                                &times;
-                                            </button>
-                                        </div>
-                                    </template>
+                                {{-- Area display template --}}
+                                <textarea id="aduan_display" rows="10" readonly
+                                        class="w-full bg-white/60 border-none text-sm text-slate-700 focus:ring-0 resize-none rounded-lg p-3 font-medium leading-relaxed"
+                                        x-model="currentTemplate"></textarea>
+                                <div class="mt-4 p-3 bg-amber-50 border border-amber-100 rounded-lg">
+                                    <p class="text-xs text-amber-800 leading-relaxed">
+                                        <span class="font-bold">Belum menjawab pertanyaan Anda?</span><br>
+                                        Silakan ganti pilihan topik ke <span class="font-bold">"Lainnya (Aduan Manual)"</span> untuk mengisi formulir pengaduan secara manual.
+                                    </p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {{-- Submit Action --}}
-                    <div class="pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <p class="text-xs text-slate-500 max-w-sm">
-                            <span class="font-bold text-slate-700">Pernyataan:</span> Dengan ini saya menyatakan bahwa data yang saya berikan adalah benar dan dapat dipertanggungjawabkan.
-                        </p>
-                        <button type="submit" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2">
-                            <span>Kirim Pengaduan</span>
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-                        </button>
-                    </div>
+                    {{-- 3. Detail Aduan & Tombol Kirim (Hanya muncul jika pilih "Lainnya") --}}
+                    <div x-show="topik === 'lainnya'" x-cloak class="transition-all duration-500">
+                        <div class="mb-8">
+                            <h3 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2 flex items-center gap-2">
+                                <span class="bg-blue-100 text-blue-700 w-6 h-6 rounded-md flex items-center justify-center text-xs">3</span>
+                                Detail Laporan Manual
+                            </h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                                <div>
+                                    <x-input-label for="jenis_layanan" :value="__('Jenis Layanan')" class="text-slate-700 font-semibold" />
+                                    <select x-model="jenis" name="jenis_layanan" class="mt-1 block w-full rounded-xl border-slate-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm transition bg-white" :required="topik === 'lainnya'">
+                                        <option value="">-- Pilih Jenis --</option>
+                                        <option value="informasi"  {{ old('jenis_layanan') === 'informasi'  ? 'selected' : '' }}>Pemberian Informasi</option>
+                                        <option value="penanganan" {{ old('jenis_layanan') === 'penanganan' ? 'selected' : '' }}>Penanganan Pengaduan</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <x-input-label for="seksi_tujuan" :value="__('Kategori / Seksi Tujuan')" class="text-slate-700 font-semibold" />
+                                    <select name="seksi_tujuan" class="mt-1 block w-full rounded-xl border-slate-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm transition bg-white" :required="topik === 'lainnya'">
+                                        <option value="">-- Pilih Kategori --</option>
+                                        <option value="Tikkim">Pelayanan Paspor (Tikkim)</option>
+                                        <option value="Doklanintalkim">[WNI] Dokumen Perjalanan (Doklanintal)</option>
+                                        <option value="Doklanintalkim">[WNA] Pelayanan Izin Tinggal (Doklanintal)</option>
+                                        <option value="Inteldakim">[WNA] Pengawasan Orang Asing (Inteldak)</option>
+                                        <option value="Inteldakim">Alur BAP (Inteldak)</option>
+                                        <option value="Tata Usaha">Sarana Prasarana (Tata Usaha)</option>
+                                    </select>
+                                </div>
+                            </div>
 
+                            <div class="mb-5">
+                                <x-input-label :value="__('Sumber / Kanal Pengaduan')" class="text-slate-700 font-semibold mb-2" />
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    @foreach(['Ruang Pengaduan', 'WhatsApp', 'Instagram', 'TikTok', 'Facebook', 'Lainnya'] as $k)
+                                        <label class="group relative flex items-center cursor-pointer">
+                                            <input type="radio" name="kanal" value="{{ $k }}" class="peer sr-only" {{ old('kanal') === $k ? 'checked' : '' }} :required="topik === 'lainnya'">
+                                            <div class="w-full flex items-center gap-3 p-3 border border-slate-200 rounded-xl hover:bg-slate-50 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition duration-200">
+                                                <div class="w-4 h-4 rounded-full border border-slate-300 peer-checked:border-blue-600 peer-checked:border-[4px] bg-white"></div>
+                                                <span class="text-sm text-slate-700 font-medium peer-checked:text-blue-800">{{ $k }}</span>
+                                            </div>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <div>
+                                <x-input-label for="aduan" :value="__('Uraian Laporan / Pertanyaan')" class="text-slate-700 font-semibold" />
+                                <textarea id="aduan" name="aduan" rows="4" class="mt-1 block w-full rounded-xl border-slate-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm transition" placeholder="Jelaskan secara detail pengaduan Anda..." :required="topik === 'lainnya'">{{ old('aduan') }}</textarea>
+                            </div>
+                        </div>
+
+                        {{-- 4. Lampiran Section --}}
+                        <div class="mb-8">
+                            <h3 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2 flex items-center gap-2">
+                                <span class="bg-blue-100 text-blue-700 w-6 h-6 rounded-md flex items-center justify-center text-xs">4</span>
+                                Dokumen Lampiran
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {{-- KTP --}}
+                                <div class="bg-slate-50 border border-slate-200 rounded-xl p-5">
+                                    <x-input-label :value="__('Foto KTP (Opsional)')" class="text-slate-800 font-bold" />
+                                    <input type="file" name="foto_ktp" accept="image/*" class="mt-2 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-white file:text-blue-700 file:shadow-sm">
+                                </div>
+
+                                {{-- Multi Bukti --}}
+                                <div x-data="buktiUploader()" class="bg-slate-50 border border-slate-200 rounded-xl p-5">
+                                    <x-input-label :value="__('Bukti Pendukung (Opsional)')" class="text-slate-800 font-bold" />
+                                    <label class="mt-3 flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer bg-white hover:bg-blue-50 transition-all">
+                                        <span class="text-sm text-slate-400">Klik atau drag foto bukti</span>
+                                        <input type="file" name="bukti[]" multiple accept="image/*" class="hidden" @change="handleFiles($event)">
+                                    </label>
+                                    <div x-show="previews.length > 0" class="mt-3 flex gap-2 overflow-x-auto pb-2">
+                                        <template x-for="(src, i) in previews" :key="i">
+                                            <div class="relative w-16 h-16 rounded-lg overflow-hidden border">
+                                                <img :src="src" class="w-full h-full object-cover">
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Submit Action --}}
+                        <div class="pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <p class="text-xs text-slate-500 max-w-sm italic">
+                                Pastikan data yang Anda isi sudah benar sebelum menekan tombol kirim.
+                            </p>
+                            <button type="submit" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+                                <span>Kirim Pengaduan</span>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                            </button>
+                        </div>
+                    </div>
                 </form>
             </div>
         </div>

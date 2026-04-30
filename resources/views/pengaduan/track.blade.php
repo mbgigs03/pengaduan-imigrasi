@@ -3,11 +3,11 @@
     <x-slot name="header">Lacak Tiket</x-slot>
 
     @php
-        $statusSteps = ['pending' => 0, 'proses' => 1, 'diteruskan' => 2, 'selesai' => 3];
+        $statusSteps = ['pending' => 0, 'diteruskan' => 1, 'proses' => 2, 'selesai' => 3];
         $steps = [
             ['Menunggu Verifikasi',    'Aduan diterima, menunggu verifikasi petugas'],
-            ['Disposisi Kasi',         'Sedang didisposisi oleh Kepala Seksi'],
             ['Sedang Ditindaklanjuti', 'Aduan sedang ditangani oleh seksi tujuan'],
+            ['Disposisi Kasi',         'Sedang didisposisi oleh Kepala Seksi'],
             ['Selesai',                'Aduan telah selesai ditindaklanjuti'],
         ];
     @endphp
@@ -52,7 +52,7 @@
                 $currentStep  = $statusSteps[$pengaduan->status] ?? 0;
                 $slaStatus    = $pengaduan->sla_status ?? 'ok';
                 $deadline     = \Carbon\Carbon::parse($pengaduan->deadline_tindak_lanjut);
-                $statusColor = \App\Helpers\StatusHelper::badgeClass($pengaduan->status);
+                $statusColor  = \App\Helpers\StatusHelper::badgeClass($pengaduan->status);
                 $slaColor = match($slaStatus) {
                     'over'  => 'text-red-600 bg-red-50 border-red-200',
                     'warn'  => 'text-amber-600 bg-amber-50 border-amber-200',
@@ -70,7 +70,9 @@
                         <span class="font-mono text-base font-bold text-slate-800 tracking-wide">
                             {{ $pengaduan->nomor_tiket }}
                         </span>
-                        <span class="badge {{ $statusColor }}">{{ \App\Helpers\StatusHelper::label($pengaduan->status) }}</span>
+                        <span class="badge {{ $statusColor }}">
+                            {{ \App\Helpers\StatusHelper::label($pengaduan->status) }}
+                        </span>
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
                                      text-[11px] font-semibold border {{ $slaColor }}">
                             <span class="w-1.5 h-1.5 rounded-full {{ $slaDot }}
@@ -120,9 +122,9 @@
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Informasi Pemohon</p>
                 <div class="grid grid-cols-2 gap-x-6 gap-y-4">
                     @foreach([
-                        ['Nama Pemohon',  $pengaduan->nama,          true],
-                        ['Seksi Tujuan',  $pengaduan->seksi_tujuan,  false],
-                        ['No. WhatsApp',  $pengaduan->whatsapp,      false],
+                        ['Nama Pemohon',  $pengaduan->nama,            true],
+                        ['Seksi Tujuan',  $pengaduan->seksi_tujuan,    false],
+                        ['No. WhatsApp',  $pengaduan->whatsapp,        false],
                         ['Kanal',         $pengaduan->kanal_pengaduan, false],
                     ] as [$lbl, $val, $bold])
                         <div>
@@ -149,7 +151,6 @@
                             $isPending = $i > $currentStep;
                         @endphp
                         <div class="flex gap-4 {{ !$loop->last ? 'pb-5' : '' }}">
-                            {{-- Dot + line --}}
                             <div class="flex flex-col items-center flex-shrink-0">
                                 <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
                                             {{ $isDone    ? 'bg-emerald-500' : '' }}
@@ -166,16 +167,12 @@
                                     @endif
                                 </div>
                                 @if (!$loop->last)
-                                    <div class="w-0.5 flex-1 mt-1
-                                                {{ $isDone ? 'bg-emerald-300' : 'bg-slate-100' }}"></div>
+                                    <div class="w-0.5 flex-1 mt-1 {{ $isDone ? 'bg-emerald-300' : 'bg-slate-100' }}"></div>
                                 @endif
                             </div>
-
-                            {{-- Label --}}
                             <div class="flex-1 pt-1 {{ !$loop->last ? 'pb-1' : '' }}">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-sm font-semibold
-                                                 {{ $isPending ? 'text-slate-300' : 'text-slate-800' }}">
+                                    <span class="text-sm font-semibold {{ $isPending ? 'text-slate-300' : 'text-slate-800' }}">
                                         {{ $step[0] }}
                                     </span>
                                     @if ($isCurrent)
@@ -207,23 +204,19 @@
                         {{ \Carbon\Carbon::parse($pengaduan->tindakLanjut->updated_at)->translatedFormat('d F Y, H:i') }}
                     </p>
                 @else
-                    <div class="flex items-center gap-3 p-4 bg-slate-50 border border-dashed
-                                border-slate-200 rounded-xl">
+                    <div class="flex items-center gap-3 p-4 bg-slate-50 border border-dashed border-slate-200 rounded-xl">
                         <svg class="w-4 h-4 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863
                                      9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574
                                      3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
                         </svg>
-                        <p class="text-sm text-slate-400 italic">
-                            Belum ada catatan tindak lanjut dari petugas.
-                        </p>
+                        <p class="text-sm text-slate-400 italic">Belum ada catatan tindak lanjut dari petugas.</p>
                     </div>
                 @endif
             </div>
 
         @elseif (request()->isMethod('post'))
-            {{-- Tidak ditemukan --}}
             <div class="bg-white rounded-[14px] border border-red-200 p-8 flex flex-col items-center gap-3 text-center">
                 <div class="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center">
                     <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

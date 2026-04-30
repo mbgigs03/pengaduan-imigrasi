@@ -1,4 +1,4 @@
-{{-- resources/views/pengaduan/track.blade.php --}}
+{{-- resources/views/pengaduan/track-public.blade.php --}}
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -23,14 +23,11 @@
             letter-spacing: .05em;
             transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
         .input-field:focus {
             border-color: #2563eb;
             background: #fff;
             box-shadow: 0 0 0 4px rgba(37,99,235,.1);
         }
-
-        /* Timeline Styles */
         .timeline-item { position: relative; padding-left: 32px; }
         .timeline-item::before {
             content: '';
@@ -41,7 +38,6 @@
             background: #e2e8f0;
         }
         .timeline-item:last-child::before { display: none; }
-        
         .timeline-dot {
             position: absolute;
             left: 0; top: 4px;
@@ -52,26 +48,21 @@
             z-index: 10;
             transition: all 0.3s;
         }
-
         .timeline-dot.active {
             border-color: #dbeafe;
             background: #2563eb;
             box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
             animation: pulse 2s infinite;
         }
-
         .timeline-dot.done {
             border-color: #10b981;
             background: #10b981;
         }
-
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.1); }
             100% { transform: scale(1); }
         }
-
-        /* Loading State */
         .btn-loading {
             position: relative;
             color: transparent !important;
@@ -89,7 +80,6 @@
             animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-
         .result-card { animation: fadeUp .5s ease-out both; }
         @keyframes fadeUp {
             from { opacity: 0; transform: translateY(20px); }
@@ -98,10 +88,9 @@
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen py-10 px-4">
-    @php use App\Helpers\StatusHelper; @endphp
+
     <div class="max-w-2xl mx-auto">
 
-        {{-- BACK BUTTON --}}
         <a href="{{ route('pengaduan.landing') }}"
             class="inline-flex items-center gap-2 text-slate-500 hover:text-blue-700 font-semibold text-sm mb-6 transition-colors group">
             <svg class="w-5 h-5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,12 +106,10 @@
                     <h1 class="text-2xl font-extrabold mb-1 tracking-tight">Lacak Aduan Anda</h1>
                     <p class="text-blue-100/80 text-sm">Pantau sejauh mana laporan Anda ditindaklanjuti.</p>
                 </div>
-                {{-- Decorative Icon --}}
                 <svg class="absolute right-6 top-6 w-20 h-20 text-white/10" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M10 20l4-4m0 0l-4-4m4 4H3m18-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h3"/>
                 </svg>
             </div>
-
             <div class="p-8">
                 <form action="{{ route('pengaduan.searchTrack') }}" method="POST" id="trackForm">
                     @csrf
@@ -148,24 +135,24 @@
             </div>
         </div>
 
-        {{-- HASIL PENCARIAN --}}
         @if(isset($pengaduan))
             @php
+                // Urutan baru: pending → diteruskan → proses → selesai
                 $statusSteps = [
                     'pending'    => 0,
-                    'proses'     => 1,
-                    'diteruskan' => 2,
+                    'diteruskan' => 1,
+                    'proses'     => 2,
                     'selesai'    => 3,
                 ];
                 $currentStep = $statusSteps[$pengaduan->status] ?? 0;
-            
+
                 $steps = [
-                    ['Menunggu Verifikasi', 'Aduan diterima, menunggu pengecekan berkas oleh petugas.'],
-                    ['Disposisi Kasi',      'Laporan diteruskan ke Kepala Seksi terkait untuk arahan.'],
+                    ['Menunggu Verifikasi',    'Aduan diterima, menunggu pengecekan berkas oleh petugas.'],
                     ['Sedang Ditindaklanjuti', 'Tim teknis sedang memproses solusi atas aduan Anda.'],
-                    ['Selesai',            'Aduan telah selesai dan solusi telah diberikan.'],
+                    ['Disposisi Kasi',         'Laporan diteruskan ke Kepala Seksi terkait untuk arahan.'],
+                    ['Selesai',                'Aduan telah selesai dan solusi telah diberikan.'],
                 ];
-            
+
                 $statusColor = match($pengaduan->status) {
                     'selesai'    => 'bg-emerald-50 text-emerald-700 border-emerald-200',
                     'proses'     => 'bg-blue-50 text-blue-700 border-blue-200',
@@ -180,7 +167,7 @@
                     <div>
                         <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Status Pengaduan</p>
                         <span class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-black border {{ $statusColor }}">
-                            {{ strtoupper(StatusHelper::label($pengaduan->status)) }}
+                            {{ strtoupper(\App\Helpers\StatusHelper::label($pengaduan->status)) }}
                         </span>
                     </div>
                     <div class="text-right">
@@ -190,9 +177,8 @@
                 </div>
 
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-                    {{-- DETAIL GRID --}}
                     <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                        
+
                         <div class="space-y-6">
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
@@ -212,21 +198,10 @@
                                     <p class="text-sm font-bold text-slate-800">{{ $pengaduan->kanal_pengaduan }}</p>
                                 </div>
                             </div>
-
                             <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Isi Aduan</label>
                                 <p class="text-sm text-slate-700 leading-relaxed italic">"{{ $pengaduan->aduan }}"</p>
                             </div>
-
-                            @if ($pengaduan->pdf_url)
-                                <a href="{{ $pengaduan->pdf_url }}" target="_blank"
-                                    class="flex items-center justify-center gap-2 w-full py-3 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition shadow-lg shadow-slate-200">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                    </svg>
-                                    Download Bukti PDF
-                                </a>
-                            @endif
                         </div>
 
                         {{-- TIMELINE --}}
@@ -237,7 +212,9 @@
                                     <div class="timeline-item">
                                         <div class="timeline-dot {{ $i < $currentStep ? 'done' : ($i === $currentStep ? 'active' : '') }}">
                                             @if($i < $currentStep)
-                                                <svg class="w-2.5 h-2.5 text-white m-auto mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>
+                                                <svg class="w-2.5 h-2.5 text-white m-auto mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+                                                </svg>
                                             @endif
                                         </div>
                                         <div>
@@ -265,7 +242,9 @@
                         </p>
                         @if ($pengaduan->tindakLanjut)
                             <div class="mt-4 text-[10px] font-bold text-blue-400 flex items-center gap-1.5 uppercase">
-                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/></svg>
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
+                                </svg>
                                 Diselesaikan pada: {{ \Carbon\Carbon::parse($pengaduan->tindakLanjut->tanggal_selesai)->translatedFormat('d F Y, H:i') }}
                             </div>
                         @endif
@@ -287,16 +266,12 @@
     </div>
 
     <script>
-        // Loading effect
         const form = document.getElementById('trackForm');
-        const btn = document.getElementById('btnSubmit');
-        
+        const btn  = document.getElementById('btnSubmit');
         form.addEventListener('submit', function() {
             btn.classList.add('btn-loading');
             btn.disabled = true;
         });
-
-        // Auto-focus input
         window.onload = () => document.getElementById('nomor_tiket').focus();
     </script>
 </body>

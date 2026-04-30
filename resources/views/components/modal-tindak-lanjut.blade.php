@@ -1,6 +1,7 @@
 {{-- resources/views/components/modal-tindak-lanjut.blade.php --}}
 @php
-    $statusValues = ['proses', 'diteruskan', 'selesai'];
+    // Urutan baru: Sedang Ditindaklanjuti → Disposisi Kasi → Selesai
+    $statusValues = ['diteruskan', 'proses', 'selesai'];
 @endphp
 
 <div id="tl-overlay"
@@ -62,7 +63,7 @@
             @csrf
             @method('PUT')
 
-            {{-- Pilihan Status --}}
+            {{-- Pilihan Status — urutan baru: Sedang Ditindaklanjuti → Disposisi Kasi → Selesai --}}
             <div>
                 <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                     Ubah Status Menjadi
@@ -134,13 +135,11 @@ function openModalTL(pengaduanId, tiket, nama, statusSaat, catatanLama, tindakLa
     const hasExisting = tindakLanjutId && tindakLanjutId !== 'null' && tindakLanjutId !== '';
 
     if (hasExisting) {
-        // Edit TL — tampilkan form update lengkap
         document.getElementById('tl-form-store').classList.add('hidden');
         document.getElementById('tl-form-update').classList.remove('hidden');
         document.getElementById('tl-form-update').action = '/tindak-lanjut/' + tindakLanjutId;
         document.getElementById('tl-catatan-update').value = catatanLama || '';
 
-        // Set radio sesuai status saat ini & trigger Alpine x-model
         document.querySelectorAll('#tl-form-update input[type="radio"]').forEach(r => {
             r.checked = (r.value === statusSaat);
             updateStatusCardUpdate(r);
@@ -153,7 +152,6 @@ function openModalTL(pengaduanId, tiket, nama, statusSaat, catatanLama, tindakLa
         }
 
     } else {
-        // TL baru — form simpel, cukup catatan
         document.getElementById('tl-form-update').classList.add('hidden');
         document.getElementById('tl-form-store').classList.remove('hidden');
         document.getElementById('tl-pengaduan-id').value = pengaduanId;
