@@ -133,6 +133,7 @@
                         </div>
                         @endif
 
+                        {{-- Filter Status (Disesuaikan dengan StatusHelper) --}}
                         <div>
                             <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                                 Status
@@ -141,9 +142,10 @@
                                 class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm
                                     focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 bg-white">
                                 <option value="">Semua Status</option>
-                                @foreach(['pending','proses','diteruskan','selesai'] as $s)
-                                    <option value="{{ $s }}" {{ request('status') === $s ? 'selected' : '' }}>
-                                        {{ ucfirst($s) }}
+                                {{-- Menggunakan Helper agar konsisten dengan filter dashboard sebelumnya --}}
+                                @foreach (\App\Helpers\StatusHelper::options() as $val => $lbl)
+                                    <option value="{{ $val }}" {{ request('status') === $val ? 'selected' : '' }}>
+                                        {{ $lbl }}
                                     </option>
                                 @endforeach
                             </select>

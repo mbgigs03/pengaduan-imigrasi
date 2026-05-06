@@ -239,50 +239,155 @@
         </div>
     </footer>
 
-    {{-- SWEETALERT TIKET --}}
-    @if (session('tiket'))
-    <script>
+    {{-- Tambahkan library di layout utama atau sebelum script ini --}}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+@if (session('tiket'))
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
         let timerInterval;
         let secondsLeft = 10;
 
+        // Data dari Session
+        const rawCategory = "{{ session('seksi_tujuan') }}";
+
+        // Log ini untuk mengecek apakah data dari session benar-benar masuk
+        console.log("Raw Category dari Session:", rawCategory);
+
+        const categoryMap = {
+            'Tikkim': 'Pelayanan Paspor',
+            'Doklan_Paspor': 'Dokumen Perjalanan',
+            'Doklan_Izin': 'Pelayanan Izin Tinggal [WNA]',
+            'Intel_WNA': 'Pengawasan Orang Asing [WNA]',
+            'Intel_BAP': 'Alur BAP',
+            'Tata Usaha': 'Sarana Prasarana'
+        };
+
+        const ticketData = {
+            nomor: "{{ session('tiket') }}",
+            tanggal: "{{ date('d/m/Y H:i') }}",
+            // Jika rawCategory kosong atau tidak ada di map, akan menampilkan 'Kategori Tidak Diketahui'
+            kategori: categoryMap[rawCategory] || 'Kategori Tidak Diketahui',
+            instansi: "Kantor Imigrasi Kelas II Non TPI Madiun"
+        };
+
+        // --- FUNGSI DOWNLOAD PDF ---
+        const downloadTicketPDF = () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'p',
+                unit: 'mm',
+                format: [80, 120] // Ukuran thermal/struk kustom
+            });
+
+            // Header - Garis Atas
+            doc.setFillColor(37, 99, 235); // Blue-600
+            doc.rect(0, 0, 80, 15, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.text(ticketData.instansi, 40, 9, { align: 'center' });
+
+            // Body
+            doc.setTextColor(60, 60, 60);
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "normal");
+            doc.text("BUKTI REGISTRASI ADUAN", 40, 22, { align: 'center' });
+
+            // Box Nomor Tiket
+            doc.setDrawColor(200, 200, 200);
+            doc.roundedRect(10, 28, 60, 20, 3, 3, 'S');
+            
+            doc.setFontSize(7);
+            doc.text("NOMOR TIKET ANDA", 40, 33, { align: 'center' });
+            doc.setFontSize(16);
+            doc.setTextColor(37, 99, 235);
+            doc.setFont("helvetica", "bold");
+            doc.text(ticketData.nomor, 40, 42, { align: 'center' });
+
+            // Informasi Detail
+            doc.setTextColor(80, 80, 80);
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "bold");
+            doc.text("Detail Laporan:", 10, 58);
+            
+            doc.setLineWidth(0.1);
+            doc.line(10, 59, 70, 59);
+
+            doc.setFont("helvetica", "normal");
+            doc.text("Tanggal", 10, 65);
+            doc.text(": " + ticketData.tanggal, 25, 65);
+
+            doc.text("Kategori", 10, 72);
+            // Handle text wrapping untuk kategori panjang
+            const splitKategori = doc.splitTextToSize(ticketData.kategori, 45);
+            doc.text(":", 25, 72);
+            doc.text(splitKategori, 27, 72);
+
+            // Footer / Note
+            doc.setFontSize(7);
+            doc.setFont("helvetica", "italic");
+            doc.setTextColor(150, 150, 150);
+            const note = "Harap simpan tiket ini untuk melakukan pengecekan status aduan secara berkala.";
+            const splitNote = doc.splitTextToSize(note, 60);
+            doc.text(splitNote, 40, 95, { align: 'center' });
+
+            doc.save(`Tiket_${ticketData.nomor}.pdf`);
+        };
+
+        // --- TAMPILAN SWEETALERT ---
         Swal.fire({
-            title: 'Berhasil!',
+            title: '<span class="text-blue-600">Berhasil Terkirim!</span>',
             html: `
-                <p class="mb-2">Aduan Anda telah diterima.</p>
-                
-                <div class="my-4 p-4 bg-gray-100 rounded-xl border border-blue-200 relative group">
-                    <small class="text-gray-500 uppercase font-semibold text-[10px] tracking-wider">Nomor Tiket Anda:</small>
-                    <div id="no-tiket" class="text-3xl font-bold text-blue-600 tracking-widest my-1">{{ session('tiket') }}</div>
+                <div class="text-left bg-gray-50 p-4 rounded-2xl border border-gray-100 shadow-inner">
+                    <div class="flex justify-between mb-3 text-[11px] text-gray-500 uppercase tracking-widest font-bold">
+                        <span>Detail Aduan</span>
+                        <span>${ticketData.tanggal}</span>
+                    </div>
                     
-                    <button onclick="copyTicket()" id="btn-copy" 
-                        class="mt-2 inline-flex items-center px-3 py-1 bg-white border border-blue-600 text-blue-600 text-xs font-bold rounded-lg hover:bg-blue-600 hover:text-white transition-all active:scale-95">
-                        <span id="copy-icon" class="mr-1">📋</span> 
-                        <span id="copy-text">Salin Nomor Tiket</span>
-                    </button>
+                    <div class="mb-4">
+                        <label class="text-[10px] text-gray-400 block">Kategori Tujuan:</label>
+                        <span class="text-sm font-semibold text-gray-700">${ticketData.kategori}</span>
+                    </div>
+
+                    <div class="p-4 bg-white rounded-xl border-2 border-dashed border-blue-200 text-center relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-blue-100 text-blue-600 text-[8px] px-2 py-1 rounded-bl-lg font-black">E-TICKET</div>
+                        <small class="text-gray-400 uppercase text-[9px] font-bold">Nomor Tiket Anda</small>
+                        <div id="no-tiket" class="text-3xl font-black text-blue-600 tracking-tighter my-1">${ticketData.nomor}</div>
+                        
+                        <button onclick="copyTicket()" id="btn-copy" 
+                            class="mt-2 inline-flex items-center px-4 py-1.5 bg-blue-50 text-blue-600 text-xs font-bold rounded-full hover:bg-blue-600 hover:text-white transition-all active:scale-95 border border-blue-200">
+                            <span id="copy-icon" class="mr-1">📋</span> 
+                            <span id="copy-text">Salin Nomor Tiket</span>
+                        </button>
+                    </div>
                 </div>
-                
-                <div class="p-3 bg-emerald-50 border border-emerald-100 rounded-lg mb-4">
-                    <p class="text-sm text-emerald-800 font-medium">
-                        📍 <strong>Estimasi:</strong> 3 Hari Kerja
+
+                <div class="mt-4 p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center gap-3">
+                    <div class="bg-emerald-500 text-white p-2 rounded-lg animate-bounce">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    </div>
+                    <p class="text-[11px] text-emerald-800 leading-tight text-left">
+                        <strong>Auto-Download:</strong> Bukti aduan PDF sedang diunduh secara otomatis ke perangkat Anda.
                     </p>
                 </div>
 
-                <p class="text-sm text-red-600 font-bold italic">
-                    ⚠️ Wajib: Simpan/Catat nomor tiket ini!
-                </p>
-                
                 <p class="mt-4 text-[10px] text-gray-400">
                     Tombol lanjut aktif dalam <b id="countdown-text" class="text-blue-600">10</b> detik...
                 </p>
             `,
             icon: 'success',
             allowOutsideClick: false,
-            allowEscapeKey: false,
-            confirmButtonText: 'Oke, Saya Paham (10)',
+            confirmButtonText: `Oke, Saya Paham (${secondsLeft})`,
             confirmButtonColor: '#2563eb',
             didOpen: () => {
                 const b = Swal.getConfirmButton();
                 b.disabled = true;
+
+                // Memicu download PDF saat popup terbuka
+                downloadTicketPDF();
 
                 timerInterval = setInterval(() => {
                     secondsLeft--;
@@ -296,35 +401,30 @@
                         b.textContent = 'Oke, Saya Paham';
                     }
                 }, 1000);
-            },
-            willClose: () => {
-                clearInterval(timerInterval);
             }
         });
+    });
 
-        // Fungsi Salin Nomor Tiket
-        function copyTicket() {
-            const text = document.getElementById('no-tiket').innerText;
-            const btnText = document.getElementById('copy-text');
-            const btnIcon = document.getElementById('copy-icon');
+    // Fungsi Salin (Scope Global agar bisa dipanggil onclick HTML SweetAlert)
+    window.copyTicket = function() {
+        const text = document.getElementById('no-tiket').innerText;
+        const btnText = document.getElementById('copy-text');
+        const btnIcon = document.getElementById('copy-icon');
+        const btn = document.getElementById('btn-copy');
 
-            navigator.clipboard.writeText(text).then(() => {
-                // Efek visual saat berhasil copy
-                btnText.innerText = 'Tersalin!';
-                btnIcon.innerText = '✅';
-                document.getElementById('btn-copy').classList.add('bg-blue-600', 'text-white');
-                
-                // Kembalikan ke asal setelah 2 detik
-                setTimeout(() => {
-                    btnText.innerText = 'Salin Nomor Tiket';
-                    btnIcon.innerText = '📋';
-                    document.getElementById('btn-copy').classList.remove('bg-blue-600', 'text-white');
-                }, 2000);
-            }).catch(err => {
-                console.error('Gagal menyalin: ', err);
-            });
-        }
-    </script>
+        navigator.clipboard.writeText(text).then(() => {
+            btnText.innerText = 'Tersalin!';
+            btnIcon.innerText = '✅';
+            btn.classList.add('bg-blue-600', 'text-white');
+            
+            setTimeout(() => {
+                btnText.innerText = 'Salin Nomor Tiket';
+                btnIcon.innerText = '📋';
+                btn.classList.remove('bg-blue-600', 'text-white');
+            }, 2000);
+        });
+    }
+</script>
 @endif
 
 </body>

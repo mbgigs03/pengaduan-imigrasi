@@ -428,15 +428,15 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <x-input-label for="seksi_tujuan" :value="__('Kategori / Seksi Tujuan')" class="text-slate-700 font-semibold" />
+                                    <x-input-label for="seksi_tujuan" :value="__('Kategori')" class="text-slate-700 font-semibold" />
                                     <select name="seksi_tujuan" class="mt-1 block w-full rounded-xl border-slate-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm transition bg-white" :required="topik === 'lainnya'">
                                         <option value="">-- Pilih Kategori --</option>
-                                        <option value="Tikkim">Pelayanan Paspor (Tikkim)</option>
-                                        <option value="Doklanintalkim">[WNI] Dokumen Perjalanan (Doklanintal)</option>
-                                        <option value="Doklanintalkim">[WNA] Pelayanan Izin Tinggal (Doklanintal)</option>
-                                        <option value="Inteldakim">[WNA] Pengawasan Orang Asing (Inteldak)</option>
-                                        <option value="Inteldakim">Alur BAP (Inteldak)</option>
-                                        <option value="Tata Usaha">Sarana Prasarana (Tata Usaha)</option>
+                                        <option value="Tikkim">Pelayanan Paspor</option>
+                                        <option value="Doklan_Paspor">Dokumen Perjalanan</option>
+                                        <option value="Doklan_Izin">Pelayanan Izin Tinggal [WNA]</option>
+                                        <option value="Intel_WNA">Pengawasan Orang Asing [WNA]</option>
+                                        <option value="Intel_BAP">Alur BAP</option>
+                                        <option value="Tata Usaha">Sarana Prasarana</option>
                                     </select>
                                 </div>
                             </div>

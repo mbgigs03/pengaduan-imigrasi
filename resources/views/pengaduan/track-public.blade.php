@@ -190,8 +190,26 @@
                                     <p class="text-sm font-bold text-slate-800">{{ \Carbon\Carbon::parse($pengaduan->tgl_pengaduan)->translatedFormat('d F Y') }}</p>
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Seksi</label>
-                                    <p class="text-sm font-bold text-slate-800 capitalize">{{ str_replace('_', ' ', $pengaduan->seksi_tujuan) }}</p>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Kategori</label>
+                                    <p class="text-sm font-bold text-slate-800">
+                                        @php
+                                            // 1. Definisikan daftar label/mapping-nya
+                                            $label_kategori = [
+                                                'Tikkim'        => 'Pelayanan Paspor',
+                                                'Doklan_Paspor' => 'Dokumen Perjalanan',
+                                                'Doklan_Izin'   => 'Pelayanan Izin Tinggal [WNA]',
+                                                'Intel_WNA'     => 'Pengawasan Orang Asing [WNA]',
+                                                'Intel_BAP'     => 'Alur BAP',
+                                                'Tata Usaha'    => 'Sarana Prasarana'
+                                            ];
+
+                                            // 2. Ambil nilai asli dari kolom 'seksi_tujuan' di DB
+                                            $key_dari_db = $pengaduan->seksi_tujuan;
+
+                                            // 3. Tampilkan label berdasarkan key, jika tidak ada tampilkan nilai aslinya
+                                            echo $label_kategori[$key_dari_db] ?? $key_dari_db;
+                                        @endphp
+                                    </p>
                                 </div>
                                 <div>
                                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Kanal</label>
@@ -227,28 +245,75 @@
                         </div>
                     </div>
 
-                    {{-- ADMIN RESPONSE --}}
-                    <div class="px-8 py-6 bg-blue-50/50 border-t border-slate-100">
-                        <div class="flex items-center gap-2 mb-3">
-                            <div class="p-1.5 bg-blue-600 rounded-lg text-white">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-                                </svg>
+                    {{-- DETAIL HISTORI TANGGAPAN --}}
+<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+    <div class="p-8">
+        <div class="flex items-center gap-3 mb-8">
+            <div class="h-8 w-1.5 bg-blue-600 rounded-full"></div>
+            <h3 class="text-lg font-extrabold text-slate-800 tracking-tight">Timeline & Tanggapan Petugas</h3>
+        </div>
+
+        <div class="space-y-0">
+            @forelse($pengaduan->tanggapans->sortByDesc('created_at') as $tanggapan)
+                <div class="relative pl-10 pb-10 group">
+                    {{-- Garis Vertikal --}}
+                    @if(!$loop->last)
+                        <div class="absolute left-[11px] top-8 w-0.5 h-full bg-slate-100 group-hover:bg-blue-100 transition-colors"></div>
+                    @endif
+
+                    {{-- Dot Status --}}
+                    <div class="absolute left-0 top-1 w-6 h-6 rounded-full border-4 bg-white z-10 transition-all
+                        {{ $loop->first ? 'border-blue-600 ring-4 ring-blue-50' : 'border-slate-200' }}">
+                    </div>
+
+                    <div class="bg-slate-50/50 rounded-2xl p-6 border border-slate-100 group-hover:border-blue-200 group-hover:bg-white transition-all">
+                        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+                            <div class="flex items-center gap-2">
+                                <span class="px-3 py-1 rounded-lg bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest">
+                                    {{ $tanggapan->status }}
+                                </span>
+                                <span class="text-xs font-bold text-slate-400">
+                                    {{ $tanggapan->created_at->translatedFormat('d F Y • H:i') }}
+                                </span>
                             </div>
-                            <span class="text-xs font-black text-blue-900 uppercase tracking-widest">Tanggapan Resmi</span>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded">
+                                Oleh: {{ $tanggapan->user->name ?? 'Admin' }}
+                            </span>
                         </div>
-                        <p class="text-sm text-blue-900/80 leading-relaxed bg-white/60 p-4 rounded-2xl border border-blue-100 italic shadow-sm">
-                            {{ $pengaduan->keterangan_admin ?? 'Halo! Mohon bersabar, aduan Anda saat ini sedang dalam antrean verifikasi petugas. Kami akan segera memberikan pembaruan di sini.' }}
-                        </p>
-                        @if ($pengaduan->tindakLanjut)
-                            <div class="mt-4 text-[10px] font-bold text-blue-400 flex items-center gap-1.5 uppercase">
-                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
-                                </svg>
-                                Diselesaikan pada: {{ \Carbon\Carbon::parse($pengaduan->tindakLanjut->tanggal_selesai)->translatedFormat('d F Y, H:i') }}
+
+                        <div class="prose prose-sm max-w-none text-slate-600 italic leading-relaxed">
+                            "{!! nl2br(e($tanggapan->catatan)) !!}"
+                        </div>
+
+                        @if($tanggapan->bukti_tanggapan)
+                            <div class="mt-4 p-2 bg-white rounded-xl border border-slate-100 inline-block">
+                                <p class="text-[9px] font-black text-slate-400 uppercase mb-2 ml-1">Lampiran Bukti:</p>
+                                <a href="{{ asset('storage/' . $tanggapan->bukti_tanggapan) }}" target="_blank" class="block group/img">
+                                    <img src="{{ asset('storage/' . $tanggapan->bukti_tanggapan) }}" 
+                                         class="h-32 w-auto rounded-lg object-cover hover:opacity-90 transition-opacity shadow-sm">
+                                </a>
                             </div>
                         @endif
                     </div>
+                </div>
+            @empty
+                {{-- Tampilan jika belum ada progres --}}
+                <div class="text-center py-12">
+                    <div class="w-16 h-16 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <p class="text-slate-500 font-medium italic">Belum ada tanggapan resmi dari petugas.</p>
+                </div>
+            @endforelse
+        </div>
+    </div>
+
+    {{-- FOOTER INFO --}}
+    <div class="px-8 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Update Terakhir: {{ $pengaduan->updated_at->diffForHumans() }}</p>
+        <button onclick="window.print()" class="text-[10px] font-black text-blue-600 uppercase hover:text-blue-800 transition-colors">Cetak Bukti</button>
+    </div>
+</div>
                 </div>
             </div>
 
