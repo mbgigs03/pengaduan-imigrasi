@@ -79,6 +79,33 @@ class Pengaduan extends Model
         return array_values(array_filter($cleanFiles));
     }
 
+    // ── Helper: Cek Status SLA (Warna Indikator) ──────────────
+    public function getSlaStatusAttribute()
+    {
+        // 1. Jika tiket sudah selesai, timer SLA berhenti (Otomatis Hijau)
+        if ($this->status === 'selesai') {
+            return 'on_track';
+        }
+
+        // 2. Jika belum ada deadline, anggap aman
+        if (!$this->deadline_tindak_lanjut) {
+            return 'on_track'; 
+        }
+
+        // 3. Jika hari ini sudah melewati deadline (Merah)
+        if (now()->greaterThan($this->deadline_tindak_lanjut)) {
+            return 'over';
+        }
+
+        // 4. Jika deadline besok atau sisa 1 hari (Kuning)
+        if (now()->addDay()->greaterThanOrEqualTo($this->deadline_tindak_lanjut)) {
+            return 'warn';
+        }
+
+        // 5. Masih aman (Hijau)
+        return 'on_track';
+    }
+
     // ── Auto-generate nomor tiket saat creating ──────────────
     protected static function booted(): void
     {

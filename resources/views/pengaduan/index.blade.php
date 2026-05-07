@@ -83,32 +83,45 @@
                     <tbody>
                         @forelse ($pengaduans as $p)
                             @php
+                                $isSelesai = $p->status === 'selesai';
                                 $tlId = optional($p->tindakLanjut)->id;
-                                $over = \Carbon\Carbon::now()->gt($p->deadline_tindak_lanjut);
+                                $isFaq = $isSelesai && !$tlId;
+                                
+                                // 🟢 PERBAIKAN: Hanya "over" (merah) jika status BUKAN selesai dan waktu sudah lewat
+                                $over = !$isSelesai && \Carbon\Carbon::now()->gt($p->deadline_tindak_lanjut);
                             @endphp
-                            <tr>
-                                <td class="font-mono text-xs text-slate-400">{{ $p->nomor_tiket }}</td>
-                                <td>
+                            <tr class="border-b border-slate-100 hover:bg-slate-50">
+                                <td class="p-3 font-mono text-xs text-slate-500">{{ $p->nomor_tiket }}</td>
+                                <td class="p-3">
                                     <div class="font-semibold text-slate-800 text-sm">{{ $p->nama }}</div>
-                                    <span class="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">
+                                    <span class="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md mt-1 inline-block">
                                         {{ $p->seksi_tujuan }}
                                     </span>
                                 </td>
-                                <td class="text-xs text-slate-500">{{ $p->kanal_pengaduan }}</td>
-                                <td>
+                                <td class="p-3 text-xs text-slate-500">{{ $p->kanal_pengaduan }}</td>
+                                <td class="p-3">
                                     <span class="badge {{ \App\Helpers\StatusHelper::badgeClass($p->status) }}">
                                         {{ \App\Helpers\StatusHelper::label($p->status) }}
                                     </span>
                                 </td>
-                                <td>
-                                    <div class="text-xs {{ $over ? 'text-red-600 font-bold' : 'text-slate-500' }}">
-                                        {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->format('d M Y') }}
-                                    </div>
-                                    <div class="text-[10px] text-slate-400">
-                                        {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->diffForHumans() }}
-                                    </div>
+                                
+                                {{-- 🟢 PERBAIKAN KOLOM DEADLINE --}}
+                                <td class="p-3">
+                                    @if($isSelesai)
+                                        <div class="text-xs font-bold text-emerald-600">Tuntas</div>
+                                        <div class="text-[10px] text-slate-400">{{ $isFaq ? 'Diselesaikan sistem (FAQ)' : 'Telah ditindaklanjuti' }}</div>
+                                    @else
+                                        <div class="text-xs {{ $over ? 'text-red-600 font-bold' : 'text-slate-500' }}">
+                                            {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->format('d M Y') }}
+                                        </div>
+                                        <div class="text-[10px] text-slate-400">
+                                            {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->diffForHumans() }}
+                                        </div>
+                                    @endif
                                 </td>
-                                <td>
+
+                                {{-- 🟢 PERBAIKAN KOLOM AKSI --}}
+                                <td class="p-3">
                                     <div class="flex items-center gap-1.5">
                                         <a href="{{ route('pengaduan.show', $p->id) }}"
                                            class="text-xs px-2.5 py-1.5 rounded-lg font-semibold
@@ -116,15 +129,25 @@
                                                   hover:bg-indigo-100 transition whitespace-nowrap">
                                             Detail
                                         </a>
-                                        <button onclick="openModalTL('{{ $p->id }}','{{ $p->nomor_tiket }}','{{ addslashes($p->nama) }}','{{ $p->status }}','{{ addslashes($p->keterangan_admin ?? '') }}','{{ $tlId }}')"
-                                            class="text-xs px-2.5 py-1.5 rounded-lg font-bold transition whitespace-nowrap
-                                            {{ $tlId
-                                                ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
-                                                : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100' }}">
-                                            {{ $tlId ? 'Edit TL' : 'TL' }}
-                                        </button>
+
+                                        {{-- LOGIKA BARU: Jika selesai, matikan tombol TL --}}
+                                        @if($isSelesai)
+                                            <span class="text-[11px] px-3 py-1.5 rounded-lg font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-not-allowed whitespace-nowrap">
+                                                <svg class="w-3.5 h-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                                Tuntas
+                                            </span>
+                                        @else
+                                            <button onclick="openModalTL('{{ $p->id }}','{{ $p->nomor_tiket }}','{{ addslashes($p->nama) }}','{{ $p->status }}','{{ addslashes($p->keterangan_admin ?? '') }}','{{ $tlId }}')"
+                                                class="text-xs px-2.5 py-1.5 rounded-lg font-bold transition whitespace-nowrap
+                                                {{ $tlId
+                                                    ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
+                                                    : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100' }}">
+                                                {{ $tlId ? 'Edit TL' : 'TL' }}
+                                            </button>
+                                        @endif
+
                                         <a href="{{ route('dashboard.pengaduan.downloadPdf', $p->nomor_tiket) }}"
-                                           title="PDF"
+                                           title="PDF" target="_blank"
                                            class="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200
                                                   text-slate-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

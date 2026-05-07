@@ -53,90 +53,122 @@ class PengaduanController extends Controller
     // ═══════════════════════════════════════════════════════════
     public function store(Request $request)
     {
+        // ── 1. Validasi Input ──────────────────────────
+        $nikRule = $request->input('jenis_layanan') === 'penanganan'
+            ? 'nullable|numeric|digits:16'
+            : 'required|numeric|digits:16';
+
         $request->validate([
             'nama'         => 'required|string|max:255',
-            'nik'          => 'required|numeric|digits:16',
+            'nik'          => $nikRule,               
             'whatsapp'     => 'required|string',
             'seksi_tujuan' => 'required|string',
             'kanal'        => 'required|string',
             'aduan'        => 'required|string',
             'bukti'        => 'nullable|array|max:5',
             'bukti.*'      => 'nullable|image|mimes:jpg,png,jpeg,webp|max:10240',
-            'foto_ktp' => 'nullable|image|mimes:jpg,png,jpeg,webp|max:10240',
+            'foto_ktp'     => 'nullable|image|mimes:jpg,png,jpeg,webp|max:10240',
+            'faq_terjawab' => 'nullable|in:0,1',
+            'topik_faq'    => 'nullable|string|max:100',
+        ], [
+            'nik.required' => 'NIK wajib diisi untuk layanan pemberian informasi.',
+            'nik.digits'   => 'NIK harus terdiri dari 16 digit angka.',
+            'nik.numeric'  => 'NIK hanya boleh berisi angka.',
         ]);
 
+        // ── 2. Tangkap Flag FAQ ──────────────────────────
+        $isFaqTerjawab = $request->input('faq_terjawab') === '1';
+
+        // ── 3. Amankan Topik FAQ ke dalam teks Aduan ──
+        $teksAduan = $request->aduan;
+        if ($request->filled('topik_faq') && $request->topik_faq !== 'lainnya') {
+            $topikBersih = ucwords(str_replace('_', ' ', $request->topik_faq));
+            $teksAduan = "[Kategori FAQ: {$topikBersih}]\n\n" . $teksAduan;
+        }
+
+        // ── 4. Simpan ke Database ──────────────────────────
         $pengaduan                         = new Pengaduan();
         $pengaduan->nama                   = $request->nama;
-        $pengaduan->nik                    = $request->nik;
+        $pengaduan->nik                    = $request->nik ?? '-';   
         $pengaduan->alamat                 = $request->alamat ?? '-';
         $pengaduan->whatsapp               = $request->whatsapp;
         $pengaduan->jenis_layanan          = $request->jenis_layanan ?? 'informasi';
         $pengaduan->seksi_tujuan           = $request->seksi_tujuan;
         $pengaduan->kanal_pengaduan        = $request->kanal;
-        $pengaduan->aduan                  = $request->aduan;
+        $pengaduan->aduan                  = $teksAduan;
         $pengaduan->tgl_pengaduan          = Carbon::now();
-        $pengaduan->deadline_tindak_lanjut = Carbon::now()->addDays(3);
-        $pengaduan->status                 = 'pending';
         
+        $pengaduan->status                 = $isFaqTerjawab ? 'selesai' : 'pending';
+        $pengaduan->deadline_tindak_lanjut = $isFaqTerjawab ? Carbon::now() : Carbon::now()->addDays(3);
+
         $pengaduan->save();
 
-        if ($request->hasFile('bukti')) {
-            $uploadedUrls = [];
-
-            foreach ($request->file('bukti') as $file) {
-                // 1. Upload file ke S3 (Supabase)
-                // $path ini akan bernilai: "pengaduan/IMI-20260423-005/namafile.jpg"
-                $path = Storage::disk('supabase')->put(
-                    "pengaduan/{$pengaduan->nomor_tiket}",
-                    $file
-                );
-
-                // 2. Rakit URL secara manual. 
-                // PASTIKAN: Tidak ada pemanggilan fungsi Storage::url() sama sekali di baris ini!
-                $uploadedUrls[] = "https://crgjblwavebvnvvdnzbk.supabase.co/storage/v1/object/public/pengaduan/" . $path;
+        // ── 5. Upload File (HANYA jika bukan FAQ terjawab) ──
+        if (!$isFaqTerjawab) {
+            if ($request->hasFile('bukti')) {
+                $uploadedUrls = [];
+                foreach ($request->file('bukti') as $file) {
+                    $path = Storage::disk('supabase')->put("pengaduan/{$pengaduan->nomor_tiket}", $file);
+                    $uploadedUrls[] = "https://crgjblwavebvnvvdnzbk.supabase.co/storage/v1/object/public/pengaduan/" . $path;
+                }
+                $pengaduan->bukti_files = $uploadedUrls;
+                $pengaduan->bukti       = $uploadedUrls[0] ?? null;
+                $pengaduan->save();
             }
 
-            // Simpan JSON array ke kolom baru
-            $pengaduan->bukti_files = $uploadedUrls;
-
-            // Backward compat: kolom lama tetap diisi foto pertama
-            $pengaduan->bukti = $uploadedUrls[0] ?? null;
-
-            $pengaduan->save();
-        }
-
-        // Ganti blok if ($request->hasFile('foto_ktp')) yang lama dengan:
-        if ($request->hasFile('foto_ktp')) {
-            $path = Storage::disk('supabase')->put(
-                "pengaduan/{$pengaduan->nomor_tiket}",
-                $request->file('foto_ktp')
-            );
-            $pengaduan->foto_ktp = "https://crgjblwavebvnvvdnzbk.supabase.co/storage/v1/object/public/pengaduan/" . $path;
-            $pengaduan->save();
+            if ($request->hasFile('foto_ktp')) {
+                $path = Storage::disk('supabase')->put("pengaduan/{$pengaduan->nomor_tiket}", $request->file('foto_ktp'));
+                $pengaduan->foto_ktp = "https://crgjblwavebvnvvdnzbk.supabase.co/storage/v1/object/public/pengaduan/" . $path;
+                $pengaduan->save();
+            }
         }
 
         Log::info('Pengaduan saved', [
-            'id'    => $pengaduan->id,
-            'tiket' => $pengaduan->nomor_tiket,
+            'id'           => $pengaduan->id,
+            'tiket'        => $pengaduan->nomor_tiket,
+            'faq_terjawab' => $isFaqTerjawab
         ]);
 
-        // Trigger PDF — non-blocking
-        try {
-            $pdfPath = $this->generateAndUploadPdf($pengaduan);
-            Log::info('PDF berhasil diupload', [
-                'tiket' => $pengaduan->nomor_tiket,
-                'path'  => $pdfPath,
-            ]);
-        } catch (\Throwable $e) {
-            Log::error('PDF gagal', [
-                'tiket' => $pengaduan->nomor_tiket,
-                'error' => $e->getMessage(),
-                'at'    => $e->getFile() . ':' . $e->getLine(),
+        // ── 6. Generate PDF (HANYA jika bukan FAQ terjawab) ──
+        if (!$isFaqTerjawab) {
+            try {
+                $pdfPath = $this->generateAndUploadPdf($pengaduan);
+                Log::info('PDF berhasil diupload', ['tiket' => $pengaduan->nomor_tiket]);
+            } catch (\Throwable $e) {
+                Log::error('PDF gagal', [
+                    'tiket' => $pengaduan->nomor_tiket,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        // ── 7. Redirect Cerdas (Petugas vs Publik) ────────────────
+        $isPetugas = Auth::check();
+
+        if ($isFaqTerjawab) {
+            $msg = 'Terima kasih! Senang bisa membantu. Apabila masih ada pertanyaan lain, jangan ragu untuk menghubungi kami kembali.';
+            
+            // Jika petugas yang isi, kembali ke tabel antrean dashboard
+            if ($isPetugas) {
+                return redirect()->route('pengaduan.index')->with('success', 'Tiket berhasil dibuat dan otomatis ditandai Selesai.');
+            }
+            // Jika publik, lempar ke landing page
+            return redirect()->route('pengaduan.landing')->with(['success' => $msg]);
+        }
+
+        $msg = 'Pengaduan berhasil diajukan!';
+        
+        if ($isPetugas) {
+            // Jika petugas yang isi tiket normal, kembali ke tabel antrean dashboard
+            return redirect()->route('pengaduan.index')->with([
+                'success' => $msg,
+                'tiket'   => $pengaduan->nomor_tiket,
             ]);
         }
 
+        // Jika publik yang isi tiket normal, lempar ke landing page
         return redirect()->route('pengaduan.landing')->with([
-            'success' => 'Pengaduan berhasil diajukan!',
+            'success' => $msg,
             'tiket'   => $pengaduan->nomor_tiket,
         ]);
     }

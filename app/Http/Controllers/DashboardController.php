@@ -58,8 +58,10 @@ class DashboardController extends Controller
                 COUNT(*) FILTER (WHERE status = 'selesai'
                     AND DATE_TRUNC('month', tgl_pengaduan) = DATE_TRUNC('month', NOW()))
                     AS selesai,
+                -- 🟢 PERBAIKAN: SLA Over jangan hitung tiket Selesai
                 COUNT(*) FILTER (WHERE status != 'selesai' AND deadline_tindak_lanjut < NOW())
                     AS sla_over,
+                -- 🟢 PERBAIKAN: SLA H-1 jangan hitung tiket Selesai
                 COUNT(*) FILTER (WHERE status != 'selesai'
                     AND deadline_tindak_lanjut BETWEEN NOW() AND NOW() + INTERVAL '24 hours')
                     AS sla_hminus1
@@ -79,6 +81,7 @@ class DashboardController extends Controller
             SUM(CASE WHEN status='proses'     THEN 1 ELSE 0 END) AS proses,
             SUM(CASE WHEN status='pending'    THEN 1 ELSE 0 END) AS pending,
             SUM(CASE WHEN status='diteruskan' THEN 1 ELSE 0 END) AS diteruskan,
+            -- 🟢 PERBAIKAN: SLA Over Per Seksi jangan hitung tiket Selesai
             SUM(CASE WHEN status != 'selesai'
                       AND deadline_tindak_lanjut < NOW() THEN 1 ELSE 0 END) AS sla_over
         ")

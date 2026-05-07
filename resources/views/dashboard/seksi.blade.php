@@ -35,7 +35,7 @@
                     <p class="text-xs text-slate-400 mt-0.5">Hanya menampilkan pengaduan untuk seksi Anda</p>
                 </div>
                 <div class="flex items-center gap-3 text-xs">
-                    @foreach([['bg-emerald-500','On track'],['bg-amber-500','H-1'],['bg-red-500','Terlambat']] as [$dot,$lbl])
+                    @foreach([['bg-emerald-500','On track / Selesai'],['bg-amber-500','H-1'],['bg-red-500','Terlambat']] as [$dot,$lbl])
                         <span class="flex items-center gap-1.5 text-slate-500">
                             <span class="w-2 h-2 rounded-full {{ $dot }} flex-shrink-0"></span>{{ $lbl }}
                         </span>
@@ -48,55 +48,79 @@
                     <thead>
                         <tr>
                             @foreach(['Tiket', 'Nama', 'Aduan', 'Kanal', 'Status', 'Deadline', 'Aksi'] as $h)
-                                <th>{{ $h }}</th>
+                                <th class="text-left p-3 text-xs font-bold text-slate-500 uppercase tracking-wide">{{ $h }}</th>
                             @endforeach
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($pengaduans as $p)
                             @php
-                                $dot = match($p->sla_status) {
+                                $isSelesai = $p->status === 'selesai';
+                                $tlId = optional($p->tindakLanjut)->id;
+                                
+                                // Jika selesai tapi nggak ada riwayat Tindak Lanjut = Itu otomatis ditutup dari FAQ Publik
+                                $isFaq = $isSelesai && !$tlId;
+
+                                // Titik warna indikator
+                                $dot = $isSelesai ? 'bg-emerald-500' : match($p->sla_status ?? 'ok') {
                                     'over'  => 'bg-red-500 dot-over',
                                     'warn'  => 'bg-amber-500',
                                     default => 'bg-emerald-500',
                                 };
-                                $tlId = optional($p->tindakLanjut)->id;
                             @endphp
-                            <tr>
-                                <td>
+                            <tr class="border-b border-slate-100 hover:bg-slate-50">
+                                <td class="p-3">
                                     <div class="flex items-center gap-2">
                                         <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $dot }}"></span>
                                         <span class="font-mono text-xs text-slate-500">{{ $p->nomor_tiket }}</span>
                                     </div>
                                 </td>
-                                <td class="font-semibold text-slate-800 text-sm">{{ $p->nama }}</td>
-                                <td>
+                                <td class="p-3 font-semibold text-slate-800 text-sm">{{ $p->nama }}</td>
+                                <td class="p-3">
                                     <a href="{{ route('pengaduan.show', $p->id) }}"
-                                       class="text-xs px-2.5 py-1.5 rounded-lg font-semibold
-                                              bg-indigo-50 text-indigo-700 border border-indigo-200
-                                              hover:bg-indigo-100 transition whitespace-nowrap">
+                                       class="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition whitespace-nowrap">
                                         Lihat Detail
                                     </a>
                                 </td>
-                                <td class="text-xs text-slate-500">{{ $p->kanal_pengaduan }}</td>
-                                <td><span class="badge {{ StatusHelper::badgeClass($p->status) }}">{{ StatusHelper::label($p->status) }}</span></td>
-                                <td>
-                                    <div class="text-xs {{ $p->sla_status === 'over' ? 'text-red-600 font-bold' : 'text-slate-500' }}">
-                                        {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->format('d M Y') }}
-                                    </div>
-                                    <div class="text-[10px] text-slate-400">
-                                        {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->diffForHumans() }}
-                                    </div>
+                                <td class="p-3 text-xs text-slate-500">{{ $p->kanal_pengaduan }}</td>
+                                <td class="p-3">
+                                    <span class="badge {{ StatusHelper::badgeClass($p->status) }}">{{ StatusHelper::label($p->status) }}</span>
                                 </td>
+                                
+                                {{-- 🟢 PERBAIKAN LOGIKA DEADLINE --}}
+                                <td class="p-3">
+                                    @if($isSelesai)
+                                        <div class="text-xs font-bold text-emerald-600">Tuntas</div>
+                                        <div class="text-[10px] text-slate-400">{{ $isFaq ? 'Diselesaikan sistem (FAQ)' : 'Telah ditindaklanjuti' }}</div>
+                                    @else
+                                        <div class="text-xs {{ ($p->sla_status ?? '') === 'over' ? 'text-red-600 font-bold' : 'text-slate-500' }}">
+                                            {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->format('d M Y') }}
+                                        </div>
+                                        <div class="text-[10px] text-slate-400">
+                                            {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->diffForHumans() }}
+                                        </div>
+                                    @endif
+                                </td>
+                                
+                                {{-- 🟢 PERBAIKAN LOGIKA AKSI --}}
                                 <td>
                                     <div class="flex items-center gap-1.5">
-                                        <button onclick="openModalTL('{{ $p->id }}','{{ $p->nomor_tiket }}','{{ addslashes($p->nama) }}','{{ $p->status }}','{{ addslashes($p->keterangan_admin ?? '') }}','{{ $tlId }}')"
-                                            class="text-xs px-2.5 py-1.5 rounded-lg font-bold transition whitespace-nowrap
-                                            {{ $tlId ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100' : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100' }}">
-                                            {{ $tlId ? 'Edit TL' : 'Tindak Lanjut' }}
-                                        </button>
+                                        {{-- LOGIKA BARU: Jika selesai, tombol dimatikan --}}
+                                        @if($p->status === 'selesai')
+                                            <span class="text-[11px] px-3 py-1.5 rounded-lg font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-not-allowed whitespace-nowrap">
+                                                <svg class="w-3.5 h-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                                Tuntas
+                                            </span>
+                                        @else
+                                            <button onclick="openModalTL('{{ $p->id }}','{{ $p->nomor_tiket }}','{{ addslashes($p->nama) }}','{{ $p->status }}','{{ addslashes($p->keterangan_admin ?? '') }}','{{ $tlId }}')"
+                                                class="text-xs px-2.5 py-1.5 rounded-lg font-bold transition whitespace-nowrap
+                                                {{ $tlId ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100' : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100' }}">
+                                                {{ $tlId ? 'Edit TL' : 'Tindak Lanjut' }}
+                                            </button>
+                                        @endif
+                                        
                                         <a href="{{ route('dashboard.pengaduan.downloadPdf', $p->nomor_tiket) }}"
-                                           title="PDF"
+                                           title="Unduh PDF" target="_blank"
                                            class="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200
                                                   text-slate-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
