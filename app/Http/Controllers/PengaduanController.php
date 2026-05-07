@@ -15,39 +15,53 @@ use Dompdf\Options;
 
 class PengaduanController extends Controller
 {
-
-
     public function index(Request $request)
-        {
-            $query = Pengaduan::query();
-            $kanalList = Pengaduan::distinct()->pluck('kanal_pengaduan')->filter()->toArray();
+    {
+        $query = Pengaduan::query();
+        $kanalList = Pengaduan::distinct()->pluck('kanal_pengaduan')->filter()->toArray();
+        $user = Auth::user();
 
-            if ($request->has('status') && in_array($request->status, ['pending', 'proses', 'diteruskan', 'selesai'])) {
-                $query->where('status', $request->status);
+        // 1. FILTER OTOMATIS BERDASARKAN ROLE ADMIN (Scope Keamanan)
+        // Ini harus di atas agar data yang tidak berhak tidak pernah "terpanggil"
+        if ($user->role === 'admin') {
+            if ($user->seksi === 'Doklanintalkim') {
+                $query->whereIn('seksi_tujuan', ['Doklanintalkim', 'Doklan_Paspor', 'Doklan_Izin']);
+            } elseif ($user->seksi === 'Inteldakim') {
+                $query->whereIn('seksi_tujuan', ['Inteldakim', 'Intel_WNA', 'Intel_BAP']);
+            } else {
+                $query->where('seksi_tujuan', $user->seksi);
             }
-
-            if ($request->has('seksi') && !empty($request->seksi)) {
-                $query->where('seksi_tujuan', $request->seksi);
-            }
-
-            // PengaduanController@index — tambah setelah filter seksi
-            if ($request->filled('keyword')) {
-                $kw = trim($request->keyword);
-                $isTicket = preg_match('/^IMI-\d{8}-\d+$/i', $kw);
-                $query->where(function ($q) use ($kw, $isTicket) {
-                    if ($isTicket) {
-                        $q->where('nomor_tiket', strtoupper($kw));
-                    } else {
-                        $q->where('nama', 'like', "%$kw%")
-                        ->orWhere('nomor_tiket', 'like', "%$kw%");
-                    }
-                });
-            }
-
-            $pengaduans = $query->orderBy('created_at', 'desc')->paginate(10);
-
-            return view('pengaduan.index', compact('pengaduans', 'kanalList'));
         }
+
+        // 2. FILTER BERDASARKAN STATUS
+        if ($request->has('status') && in_array($request->status, ['pending', 'proses', 'diteruskan', 'selesai'])) {
+            $query->where('status', $request->status);
+        }
+
+        // 3. FILTER MANUAL DARI DROPDOWN UI (Jika ada)
+        if ($request->filled('seksi')) {
+            $query->where('seksi_tujuan', $request->seksi);
+        }
+
+        // 4. FILTER KEYWORD SEARCH
+        if ($request->filled('keyword')) {
+            $kw = trim($request->keyword);
+            $isTicket = preg_match('/^IMI-\d{8}-\d+$/i', $kw);
+            $query->where(function ($q) use ($kw, $isTicket) {
+                if ($isTicket) {
+                    $q->where('nomor_tiket', strtoupper($kw));
+                } else {
+                    $q->where('nama', 'like', "%$kw%")
+                    ->orWhere('nomor_tiket', 'like', "%$kw%");
+                }
+            });
+        }
+
+        // 5. EKSEKUSI PENGAMBILAN DATA (Paling Akhir)
+        $pengaduans = $query->orderBy('created_at', 'desc')->paginate(10);
+
+        return view('pengaduan.index', compact('pengaduans', 'kanalList'));
+    }
     // ═══════════════════════════════════════════════════════════
     // STORE
     // ═══════════════════════════════════════════════════════════
@@ -148,28 +162,26 @@ class PengaduanController extends Controller
         if ($isFaqTerjawab) {
             $msg = 'Terima kasih! Senang bisa membantu. Apabila masih ada pertanyaan lain, jangan ragu untuk menghubungi kami kembali.';
             
-            // Jika petugas yang isi, kembali ke tabel antrean dashboard
             if ($isPetugas) {
                 return redirect()->route('pengaduan.index')->with('success', 'Tiket berhasil dibuat dan otomatis ditandai Selesai.');
             }
-            // Jika publik, lempar ke landing page
             return redirect()->route('pengaduan.landing')->with(['success' => $msg]);
         }
 
         $msg = 'Pengaduan berhasil diajukan!';
         
         if ($isPetugas) {
-            // Jika petugas yang isi tiket normal, kembali ke tabel antrean dashboard
             return redirect()->route('pengaduan.index')->with([
                 'success' => $msg,
                 'tiket'   => $pengaduan->nomor_tiket,
             ]);
         }
 
-        // Jika publik yang isi tiket normal, lempar ke landing page
+        // 🟢 GABUNGAN FRONTEND: Bawa seksi_tujuan untuk Pop-up JS temanmu
         return redirect()->route('pengaduan.landing')->with([
-            'success' => $msg,
-            'tiket'   => $pengaduan->nomor_tiket,
+            'success'      => $msg,
+            'tiket'        => $pengaduan->nomor_tiket,
+            'seksi_tujuan' => $pengaduan->seksi_tujuan, 
         ]);
     }
     
@@ -293,194 +305,192 @@ class PengaduanController extends Controller
     }
 
     private function buildPdfHtml(Pengaduan $pengaduan, array $values): string
-{
-    
-    $e = fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    {
+        
+        $e = fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
 
-    $tgl    = $e($values['tgl_pengaduan']);
-    $nama   = $e($values['nama']);
-    $alamat = $e($values['alamat']);
-    $noWa   = $e($values['no_wa']);
-    $aduan  = nl2br($e($values['isi_aduan'])); // nl2br menjaga enter tetap ada
-    $seksi  = $e($values['seksi']);
-    $tiket  = $e($values['nomor_tiket']);
-    $tindak = $e($values['tindak_lanjut']);
-    // Logika untuk membedakan Kepala Seksi dan Kepala Subag
-    $labelJabatan = "Kepala Seksi";
-    if (str_contains(strtolower($seksi), 'tata usaha')) {
-        $labelJabatan = "Kepala Sub Bagian";
-    }
-    
-    $logoPath = public_path('images/logo-imigrasi.png');
+        $tgl    = $e($values['tgl_pengaduan']);
+        $nama   = $e($values['nama']);
+        $alamat = $e($values['alamat']);
+        $noWa   = $e($values['no_wa']);
+        $aduan  = nl2br($e($values['isi_aduan'])); // nl2br menjaga enter tetap ada
+        $seksi  = $e($values['seksi']);
+        $tiket  = $e($values['nomor_tiket']);
+        $tindak = $e($values['tindak_lanjut']);
+        // Logika untuk membedakan Kepala Seksi dan Kepala Subag
+        $labelJabatan = "Kepala Seksi";
+        if (str_contains(strtolower($seksi), 'tata usaha')) {
+            $labelJabatan = "Kepala Sub Bagian";
+        }
+        
+        $logoPath = public_path('images/logo-imigrasi.png');
 
-    $logoBase64 = base64_encode(file_get_contents($logoPath));
-    $logoHtml = '<img src="data:image/png;base64,' . $logoBase64 . '" alt="Logo Imigrasi">';
+        $logoBase64 = base64_encode(file_get_contents($logoPath));
+        $logoHtml = '<img src="data:image/png;base64,' . $logoBase64 . '" alt="Logo Imigrasi">';
 
-    $jenis = strtolower($pengaduan->seksi_tujuan);
+        // Di dalam method buildPdfHtml...
 
-    // LOGIKA MAPPING: Langsung menyebutkan satu sasaran sesuai database
-    if (str_contains($jenis, 'informasi')) {
-        $sasaranTeks = "Pemberian Informasi (Tikkim)";
-    } elseif (str_contains($jenis, 'paspor') || str_contains($jenis, 'tikkim')) {
-        $sasaranTeks = "Pelayanan Paspor (Tikkim)";
-    } elseif (str_contains($jenis, 'doklan')) {
-        $sasaranTeks = "[WNI/WNA] Dokumen Perjalanan (Doklanintalkim)";
-    } elseif (str_contains($jenis, 'inteldak')) {
-        $sasaranTeks = "Pengawasan WNA & BAP (Inteldakim)";
-    } elseif (str_contains($jenis, 'tata usaha') || str_contains($jenis, 'sarpras')) {
-        $sasaranTeks = "Sarana Prasarana & Pegawai (Tata Usaha)";
-    } else {
-        $sasaranTeks = $e($pengaduan->seksi_tujuan); // Fallback ke teks asli database jika tidak cocok
-    }
+        $jenis = $pengaduan->seksi_tujuan; // Ambil raw value dari DB
 
-    Log::info('Logo exists?', [
-        'path' => $logoPath,
-        'exists' => file_exists($logoPath),
-        'readable' => is_readable($logoPath)
-    ]);
+        $mappingSasaran = [
+            'Tikkim'        => 'Pelayanan Paspor ',
+            'Doklan_Paspor' => 'Dokumen Perjalanan ',
+            'Doklan_Izin'   => 'Pelayanan Izin Tinggal [WNA] ',
+            'Intel_WNA'     => 'Pengawasan Orang Asing [WNA] ',
+            'Intel_BAP'     => 'Alur BAP ',
+            'Tata Usaha'    => 'Sarana Prasarana ',
+        ];
 
-    return <<<HTML
-<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<style>
-@page { margin: 20mm 25mm; size: A4 portrait; }
+        $sasaranTeks = $mappingSasaran[$jenis] ?? $jenis;
 
-body {
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 11pt; /* Standar surat dinas biasanya 11pt - 12pt */
-    color: #000;
-    line-height: 1.2;
-}
-.b{
-    font-weight: bold;
-    font-size: 12pt;
-}
+        Log::info('Logo exists?', [
+            'path' => $logoPath,
+            'exists' => file_exists($logoPath),
+            'readable' => is_readable($logoPath)
+        ]);
 
-.kop {
-    display: table;
-    width: 100%;
-    border-bottom: 3px double #000;
-    margin-bottom: 12px;
-    padding-bottom: 6px;
-}
+        return <<<HTML
+        <!DOCTYPE html>
+        <html lang="id">
+        <head>
+        <meta charset="UTF-8">
+        <style>
+        @page { margin: 20mm 25mm; size: A4 portrait; }
 
-.kop-logo {
-    display: table-cell;
-    width: 90px;
-    vertical-align: middle;
-    text-align: center;
-}
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11pt; /* Standar surat dinas biasanya 11pt - 12pt */
+            color: #000;
+            line-height: 1.2;
+        }
+        .b{
+            font-weight: bold;
+            font-size: 12pt;
+        }
 
-.kop-logo img {
-    max-width: 90px;
-    max-height: 90px;
-}
+        .kop {
+            display: table;
+            width: 100%;
+            border-bottom: 3px double #000;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+        }
 
-.kop-teks {
-    display: table-cell;
-    vertical-align: middle;
-    text-align: center;
-}
+        .kop-logo {
+            display: table-cell;
+            width: 90px;
+            vertical-align: middle;
+            text-align: center;
+        }
 
-.kop-teks .instansi {font-size: 10pt; margin-bottom: 2px; }
-.kop-teks .alamat { font-size: 9pt; }
+        .kop-logo img {
+            max-width: 90px;
+            max-height: 90px;
+        }
 
-.judul {
-    text-align: center;
-    margin: 15px 0;
-}
-.judul h1 { font-size: 14pt; margin: 0; text-decoration: underline; }
-.judul h2 { font-size: 12pt; margin: 0; }
+        .kop-teks {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: center;
+        }
 
-.dt { width: 100%; border-collapse: collapse; margin-top: 10px; }
-.dt td { padding: 5px; vertical-align: top; }
-.lbl { width: 35%; }
-.sep { width: 10px; }
+        .kop-teks .instansi {font-size: 10pt; margin-bottom: 2px; }
+        .kop-teks .alamat { font-size: 9pt; }
 
-.kotak-aduan {
-    border: 1px solid #000;
-    width: 100%;
-    padding: 12px;
-    margin-top: 8px;
-    box-sizing: border-box;
-    min-height: 120px; /* lebih realistis */
-}
+        .judul {
+            text-align: center;
+            margin: 15px 0;
+        }
+        .judul h1 { font-size: 14pt; margin: 0; text-decoration: underline; }
+        .judul h2 { font-size: 12pt; margin: 0; }
 
-.ttd { margin-top: 40px; }
-.ttd-table { width: 100%; }
-.ttd-table td { width: 50%; text-align: center; }
+        .dt { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .dt td { padding: 5px; vertical-align: top; }
+        .lbl { width: 35%; }
+        .sep { width: 10px; }
 
-.garis-nama {
-    margin-top: 60px;
-    font-weight: bold;
-    text-decoration: underline;
-}
-</style>
-</head>
+        .kotak-aduan {
+            border: 1px solid #000;
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            box-sizing: border-box;
+            min-height: 120px; /* lebih realistis */
+        }
 
-<body>
+        .ttd { margin-top: 40px; }
+        .ttd-table { width: 100%; }
+        .ttd-table td { width: 50%; text-align: center; }
 
-<div class="kop">
-    <div class="kop-logo">
-        {$logoHtml}
-    </div>
-    <div class="kop-teks">
-        <div class="instansi">KEMENTERIAN IMIGRASI DAN PEMASYARAKATAN REPUBLIK INDONESIA</div>
-        <div class="instansi">DIREKTORAT JENDERAL IMIGRASI</div>
-        <div class="instansi">KANTOR WILAYAH JAWA TIMUR</div>
-        <div class="b">KANTOR IMIGRASI KELAS II NON TPI MADIUN</div>
-        <div class="alamat">Jl. Panglima Sudirman, Mejayan, Kab. Madiun, Jawa Timur</div>
-        <div class="alamat">Laman : madiun.imigrasi.go.id, Pos-el : kanim_madiun@imigrasi.go.id</div>
-    </div>
-</div>
+        .garis-nama {
+            margin-top: 60px;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        </style>
+        </head>
 
-<div class="judul">
-    <h3>FORMULIR PENGADUAN <br>LAYANAN KEIMIGRASIAN</h3>
-</div>
+        <body>
 
-<div style="margin-bottom: 15px;">
-    Yth. Kepala Kantor Imigrasi Kelas II Non TPI Madiun<br>
-    Di Tempat
-</div>
-
-<table class="dt">
-    <tr><td class="lbl">Nomor Pengaduan</td><td class="sep">:</td><td>{$tiket}</td></tr>
-    <tr><td class="lbl">Tanggal Pengaduan</td><td class="sep">:</td><td>{$tgl}</td></tr>
-    <tr><td class="lbl">Nama Lengkap Pelapor</td><td class="sep">:</td><td>{$nama}</td></tr>
-    <tr><td class="lbl">Alamat</td><td class="sep">:</td><td>{$alamat}</td></tr>
-    <tr><td class="lbl">Nomor WhatsApp</td><td class="sep">:</td><td>{$noWa}</td></tr>
-    
-    <tr><td class="lbl">Sasaran Pengaduan</td><td class="sep">:</td><td><strong>{$sasaranTeks}</strong></td></tr>
-    <tr><td class="lbl">Deskripsi Pengaduan</td><td class="sep">:</td></tr>
-    <tr>
-        <td colspan="3">
-            <div class="kotak-aduan">
-                {$aduan}
+        <div class="kop">
+            <div class="kop-logo">
+                {$logoHtml}
             </div>
-        </td>
-    </tr>
-</table>
+            <div class="kop-teks">
+                <div class="instansi">KEMENTERIAN IMIGRASI DAN PEMASYARAKATAN REPUBLIK INDONESIA</div>
+                <div class="instansi">DIREKTORAT JENDERAL IMIGRASI</div>
+                <div class="instansi">KANTOR WILAYAH JAWA TIMUR</div>
+                <div class="b">KANTOR IMIGRASI KELAS II NON TPI MADIUN</div>
+                <div class="alamat">Jl. Panglima Sudirman, Mejayan, Kab. Madiun, Jawa Timur</div>
+                <div class="alamat">Laman : madiun.imigrasi.go.id, Pos-el : kanim_madiun@imigrasi.go.id</div>
+            </div>
+        </div>
 
-<div class="ttd">
-    <table class="ttd-table">
-        <tr>
-            <td></td>
-            <td>
-                Madiun, {$tgl}<br>
-                <strong>{$labelJabatan} {$seksi}</strong>
-                <div class="garis-nama" style="margin-top: 70px;">( ................................. )</div>
-            </td>
-        </tr>
-    </table>
-</div>
+        <div class="judul">
+            <h3>FORMULIR PENGADUAN <br>LAYANAN KEIMIGRASIAN</h3>
+        </div>
 
-</body>
-</html>
-HTML;
-}
+        <div style="margin-bottom: 15px;">
+            Yth. Kepala Kantor Imigrasi Kelas II Non TPI Madiun<br>
+            Di Tempat
+        </div>
+
+        <table class="dt">
+            <tr><td class="lbl">Nomor Pengaduan</td><td class="sep">:</td><td>{$tiket}</td></tr>
+            <tr><td class="lbl">Tanggal Pengaduan</td><td class="sep">:</td><td>{$tgl}</td></tr>
+            <tr><td class="lbl">Nama Lengkap Pelapor</td><td class="sep">:</td><td>{$nama}</td></tr>
+            <tr><td class="lbl">Alamat</td><td class="sep">:</td><td>{$alamat}</td></tr>
+            <tr><td class="lbl">Nomor WhatsApp</td><td class="sep">:</td><td>{$noWa}</td></tr>
+            
+            <tr><td class="lbl">Sasaran Pengaduan</td><td class="sep">:</td><td><strong>{$sasaranTeks}</strong></td></tr>
+            <tr><td class="lbl">Deskripsi Pengaduan</td><td class="sep">:</td></tr>
+            <tr>
+                <td colspan="3">
+                    <div class="kotak-aduan">
+                        {$aduan}
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <div class="ttd">
+            <table class="ttd-table">
+                <tr>
+                    <td></td>
+                    <td>
+                        Madiun, {$tgl}<br>
+                        <strong>{$labelJabatan} {$seksi}</strong>
+                        <div class="garis-nama" style="margin-top: 70px;">( ................................. )</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        </body>
+        </html>
+        HTML;
+    }
 
     // ═══════════════════════════════════════════════════════════
     // SANITIZE FOR DOCX
@@ -506,15 +516,27 @@ HTML;
     // ═══════════════════════════════════════════════════════════
     private function formatSeksi(string $seksi): string
     {
-        $mapping = [
-            'Tikkim' => 'Tikkim',
-            'Doklanintalkim' => 'Doklanintalkim',
-            'Inteldakim' => 'Inteldakim',
-            'Tata Usaha' => 'Tata Usaha',
+        $mappingInduk = [
+            'Tikkim'        => 'Teknologi Informasi, Intelijen dan Komunikasi Keimigrasian',
+            'Doklan_Paspor' => 'Dokumen Perjalanan dan Izin Tinggal Keimigrasian',
+            'Doklan_Izin'   => 'Dokumen Perjalanan dan Izin Tinggal Keimigrasian',
+            'Intel_WNA'     => 'Intelijen dan Penindakan Keimigrasian',
+            'Intel_BAP'     => 'Intelijen dan Penindakan Keimigrasian',
+            'Tata Usaha'    => 'Sub Bagian Tata Usaha',
         ];
         
-        return $mapping[$seksi] ?? ucwords(str_replace('_', ' ', $seksi));
-    }   
+        // Jika ingin versi singkat untuk PDF:
+        $mappingSingkat = [
+            'Tikkim'        => 'Tikkim',
+            'Doklan_Paspor' => 'Doklanintalkim',
+            'Doklan_Izin'   => 'Doklanintalkim',
+            'Intel_WNA'     => 'Inteldakim',
+            'Intel_BAP'     => 'Inteldakim',
+            'Tata Usaha'    => 'Tata Usaha',
+        ];
+
+        return $mappingSingkat[$seksi] ?? $seksi;
+    }
 
     // ═══════════════════════════════════════════════════════════
     // DOWNLOAD PDF
@@ -562,18 +584,51 @@ HTML;
         }
         return view('pengaduan.track-public', compact('pengaduan'));
     }
-
-    public function updateStatus(Request $request, Pengaduan $pengaduan)
+    public function updateStatus(Request $request)
     {
-        $request->validate(['status' => 'required|in:pending,proses,diteruskan,selesai']);
-        $pengaduan->update([
-            'status'           => $request->status,
-            'keterangan_admin' => $request->keterangan,
-            'updated_by'       => Auth::id(),
-        ]);
-        return back()->with('success', 'Status pengaduan diperbarui.');
-    }
+        // Pengaduan_id dikirim dari hidden input di modal
+        $pengaduan = Pengaduan::findOrFail($request->pengaduan_id);
 
+        $request->validate([
+            'status'     => 'required|in:pending,proses,diteruskan,selesai',
+            'keterangan' => 'required|string|min:5',
+            'bukti_gambar' => 'nullable|image|max:2048'
+        ]);
+
+        \DB::transaction(function () use ($request, $pengaduan) {
+            
+            // 1. Update Tabel Utama
+            $pengaduan->update([
+                'status'           => $request->status,
+                'keterangan_admin' => $request->keterangan,
+                'updated_by'       => Auth::id(),
+            ]);
+
+            // 2. Handle Bukti Gambar (Jika ada)
+            $urlGambar = null;
+            if ($request->hasFile('bukti_gambar')) {
+                $path = Storage::disk('supabase')->put("tanggapan/{$pengaduan->nomor_tiket}", $request->file('bukti_gambar'));
+                $urlGambar = "https://your-project.supabase.co/storage/v1/object/public/pengaduan/" . $path;
+            }
+
+            // 3. Mapping Label untuk Timeline
+            $statusLabels = [
+                'proses'     => 'Sedang Ditindaklanjuti',
+                'diteruskan' => 'Disposisi Kasi',
+                'selesai'    => 'Selesai'
+            ];
+
+            // 4. Simpan ke Histori (Timeline)
+            $pengaduan->tanggapans()->create([
+                'user_id' => Auth::id(),
+                'status'  => $statusLabels[$request->status] ?? $request->status,
+                'catatan' => $request->keterangan,
+                'bukti_tanggapan' => $urlGambar, // Jika Anda menambah kolom ini di migration tanggapans
+            ]);
+        });
+
+        return back()->with('success', 'Progres pengaduan berhasil dicatat dalam histori.');
+    }
     public function show($id)
     {
         $pengaduan = Pengaduan::with('tindakLanjut')->findOrFail($id);

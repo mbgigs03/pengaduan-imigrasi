@@ -26,13 +26,13 @@
             @endforeach
         </div>
 
-        {{-- TABEL PENGADUAN --}}
+        {{-- ── TABEL + FILTER ───────────────────────────────────── --}}
         <div class="bg-white rounded-[14px] border border-slate-100 overflow-hidden">
 
             <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                 <div>
                     <h3 class="text-sm font-bold text-slate-800">Daftar Pengaduan — Seksi {{ $seksi }}</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Hanya menampilkan pengaduan untuk seksi Anda</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Filter dan kelola pengaduan unit kerja Anda</p>
                 </div>
                 <div class="flex items-center gap-3 text-xs">
                     @foreach([['bg-emerald-500','On track / Selesai'],['bg-amber-500','H-1'],['bg-red-500','Terlambat']] as [$dot,$lbl])
@@ -42,6 +42,53 @@
                     @endforeach
                 </div>
             </div>
+
+            {{-- Filter Area --}}
+            <form method="GET" action="{{ route('dashboard') }}"
+                  class="flex flex-wrap items-center gap-2.5 px-5 py-3 bg-slate-50/70 border-b border-slate-100">
+
+                <input type="text" name="keyword" value="{{ request('keyword') }}"
+                       placeholder="Cari nama / nomor tiket…"
+                       class="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white w-52
+                              focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400
+                              placeholder:text-slate-400">
+
+                <select name="status"
+                        class="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-600
+                               focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400">
+                    <option value="">Semua Status</option>
+                    @foreach (\App\Helpers\StatusHelper::options() as $val => $lbl)
+                        <option value="{{ $val }}" {{ request('status') === $val ? 'selected' : '' }}>
+                            {{ $lbl }}
+                        </option>
+                    @endforeach
+                </select>
+
+                <select name="kanal"
+                        class="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-600
+                               focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400">
+                    <option value="">Semua Kanal</option>
+                    @foreach($kanalList as $k)
+                        <option value="{{ $k }}" {{ request('kanal') === $k ? 'selected' : '' }}>{{ $k }}</option>
+                    @endforeach
+                </select>
+
+                {{-- Opsi Filter Seksi (Opsional untuk dashboard seksi) --}}
+                <select name="sla"
+                        class="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-600
+                               focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400">
+                    <option value="">Semua SLA</option>
+                    <option value="over" {{ request('sla') === 'over' ? 'selected' : '' }}>Terlambat</option>
+                    <option value="warn" {{ request('sla') === 'warn' ? 'selected' : '' }}>H-1</option>
+                </select>
+
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition">
+                    Filter
+                </button>
+                <a href="{{ route('dashboard') }}"
+                   class="text-sm text-slate-400 hover:text-slate-600 transition">Reset</a>
+            </form>
 
             <div class="overflow-x-auto">
                 <table class="w-full data-table">
@@ -136,7 +183,7 @@
                                             <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg>
                                         </div>
                                         <p class="text-sm font-semibold text-slate-500">Belum ada pengaduan</p>
-                                        <p class="text-xs text-slate-400">Belum ada pengaduan untuk seksi {{ $seksi }}</p>
+                                        <p class="text-xs text-slate-400">Tidak ditemukan pengaduan yang sesuai dengan filter</p>
                                     </div>
                                 </td>
                             </tr>

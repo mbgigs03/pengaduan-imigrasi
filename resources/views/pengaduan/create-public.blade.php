@@ -222,12 +222,12 @@
                                            focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"
                                     required>
                                 <option value="">— Pilih kategori —</option>
-                                <option value="Tikkim"         {{ old('seksi_tujuan') === 'Tikkim'         ? 'selected' : '' }}>Pelayanan Paspor</option>
-                                <option value="Doklanintalkim" {{ old('seksi_tujuan') === 'Doklanintalkim' ? 'selected' : '' }}>[WNI] Dokumen Perjalanan</option>
-                                <option value="Doklanintalkim" {{ old('seksi_tujuan') === 'Doklanintalkim' ? 'selected' : '' }}>[WNA] Pelayanan Izin Tinggal</option>
-                                <option value="Inteldakim"     {{ old('seksi_tujuan') === 'Inteldakim'     ? 'selected' : '' }}>[WNA] Pengawasan Orang Asing</option>
-                                <option value="Inteldakim"     {{ old('seksi_tujuan') === 'Inteldakim'     ? 'selected' : '' }}>Alur BAP</option>
-                                <option value="Tata Usaha"     {{ old('seksi_tujuan') === 'Tata Usaha'     ? 'selected' : '' }}>Sarana Prasarana</option>
+                                <option value="Tikkim">Pelayanan Paspor</option>
+                                <option value="Doklan_Paspor">Dokumen Perjalanan</option>
+                                <option value="Doklan_Izin">Pelayanan Izin Tinggal [WNA]</option>
+                                <option value="Intel_WNA">Pengawasan Orang Asing [WNA]</option>
+                                <option value="Intel_BAP">Alur BAP</option>
+                                <option value="Tata Usaha">Sarana Prasarana</option>
                             </select>
                         </div>
                     </div>

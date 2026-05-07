@@ -85,25 +85,16 @@ Route::middleware(['auth', 'role:tikkim,seksi'])->group(function () {
     // Route::post('/pengaduan/{pengaduan}/tindak-lanjut', [TindakLanjutController::class, 'store'])
     //     ->name('tindaklanjut.store');
 
-        // Simpan tindak lanjut baru (dari modal dashboard)
-    Route::post('/tindak-lanjut', [TindakLanjutController::class, 'store'])
-        ->name('tindak-lanjut.store');
+    Route::patch('/admin/pengaduan/update-status', [PengaduanController::class, 'updateStatus'])
+        ->name('admin.pengaduan.updateStatus');
 
-    // // 2. Lihat detail riwayat tindak lanjut (untuk modal history)
-    // Route::get('/pengaduan/{pengaduan}/history', [TindakLanjutController::class, 'history'])
-    //     ->name('tindaklanjut.history');
-
-        // Update tindak lanjut yang sudah ada
-    Route::put('/tindak-lanjut/{tindakLanjut}', [TindakLanjutController::class, 'update'])
-        ->name('tindak-lanjut.update');
-
-    // // 3. Upload bukti tindak lanjut (foto/dokumen jika diperlukan)
-    // Route::post('/pengaduan/{pengaduan}/upload-bukti', [TindakLanjutController::class, 'uploadBukti'])
-    //     ->name('tindaklanjut.upload');
-
-    // Hapus tindak lanjut (reset status ke pending)
-    Route::delete('/tindak-lanjut/{tindakLanjut}', [TindakLanjutController::class, 'destroy'])
-        ->name('tindak-lanjut.destroy');
+    // Route Resource untuk manajemen histori jika diperlukan (opsional)
+    // Gunakan ini jika ingin mengedit atau menghapus poin histori tertentu saja
+    Route::prefix('tindak-lanjut')->name('tindak-lanjut.')->group(function() {
+        Route::post('/', [TindakLanjutController::class, 'store'])->name('store');
+        Route::put('/{tindakLanjut}', [TindakLanjutController::class, 'update'])->name('update');
+        Route::delete('/{tindakLanjut}', [TindakLanjutController::class, 'destroy'])->name('destroy');
+    });
 
     Route::get('/pengaduan/{id}', [PengaduanController::class, 'show'])
         ->name('pengaduan.show');
@@ -144,6 +135,7 @@ Route::middleware(['auth', 'role:tikkim,seksi'])->group(function () {
         Route::post('/{notifikasi}/read', [NotifikasiController::class, 'markRead'])->name('notifikasi.markRead');
         Route::post('/read-all', [NotifikasiController::class, 'markAllRead'])->name('notifikasi.markAllRead');
     });
+
 });
 
 Route::middleware(['auth'])->group(function () {

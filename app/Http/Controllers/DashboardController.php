@@ -137,7 +137,8 @@ class DashboardController extends Controller
     private function seksi(Request $request)
     {
         $user  = Auth::user();
-        $seksi = $user->profile->seksi;
+        // Mengambil nilai seksi dari profile (contoh: 'Doklanintalkim' atau 'Inteldakim')
+        $seksi = $user->profile->seksi; 
         $now   = now();
 
         $keyword = $request->keyword;
@@ -145,9 +146,22 @@ class DashboardController extends Controller
         $kanal   = $request->kanal;
         $sla     = $request->sla;
 
-        $query = Pengaduan::where('seksi_tujuan', $seksi);
+        // ─── PERUBAHAN UTAMA DISINI ───
+        $query = Pengaduan::query();
 
-        // FILTER
+        if ($seksi === 'Doklanintalkim') {
+            // Admin Doklan bisa melihat kategori umum, paspor, dan izin
+            $query->whereIn('seksi_tujuan', ['Doklanintalkim', 'Doklan_Paspor', 'Doklan_Izin']);
+        } elseif ($seksi === 'Inteldakim') {
+            // Admin Intel bisa melihat kategori umum, WNA, dan BAP
+            $query->whereIn('seksi_tujuan', ['Inteldakim', 'Intel_WNA', 'Intel_BAP']);
+        } else {
+            // Untuk seksi lain (misal: Tikkim/Umum) tetap filter normal
+            $query->where('seksi_tujuan', $seksi);
+        }
+        // ──────────────────────────────
+
+        // FILTER KEYWORD
         if ($keyword) {
             $isTicket = preg_match('/^IMI-\d{8}-\d+$/i', trim($keyword));
             $query->where(function ($q) use ($keyword, $isTicket) {
@@ -160,14 +174,17 @@ class DashboardController extends Controller
             });
         }
 
+        // FILTER STATUS
         if ($status) {
             $query->where('status', $status);
         }
 
+        // FILTER KANAL
         if ($kanal) {
             $query->where('kanal_pengaduan', $kanal);
         }
 
+        // FILTER SLA
         if ($sla === 'over') {
             $query->where('status','!=','selesai')
                 ->where('deadline_tindak_lanjut','<',$now);
@@ -178,17 +195,17 @@ class DashboardController extends Controller
             $query->where('deadline_tindak_lanjut','>', $now->copy()->addDay());
         }
 
-        // STAT
+        // STATISTIK (Otomatis mengikuti filter query di atas)
         $totalMasuk = (clone $query)->count();
         $selesai    = (clone $query)->where('status','selesai')->count();
         $slaOver    = (clone $query)->where('status','!=','selesai')
-                        ->where('deadline_tindak_lanjut','<',$now)->count();
+                            ->where('deadline_tindak_lanjut','<',$now)->count();
         $menunggu   = (clone $query)->whereIn('status',['pending','proses'])->count();
 
-        // LIST
+        // DROPDOWN LIST KANAL
         $kanalList = Pengaduan::select('kanal_pengaduan')->distinct()->pluck('kanal_pengaduan');
 
-        // DATA
+        // EKSEKUSI DATA TABEL
         $pengaduans = (clone $query)
             ->with('tindakLanjut')
             ->latest()
@@ -210,7 +227,6 @@ class DashboardController extends Controller
             'kanalList'
         ));
     }
-
     /**
      * Update status & tindak lanjut
      */
