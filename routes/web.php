@@ -137,27 +137,32 @@ Route::middleware(['auth', 'role:tikkim,seksi'])->group(function () {
     });
 
 });
-
-Route::middleware(['auth'])->group(function () {
     
-    // Prefix 'kakanim' untuk merapikan URL
-    Route::prefix('kakanim')->name('kakanim.')->group(function () {
-        
-        // Dashboard Utama (Method index)
-        Route::get('/dashboard', [KakanimController::class, 'index'])->name('dashboard');
-
-        // Route yang error tadi (Method sendAlert)
-        // URL: /kakanim/alert
-        Route::post('/alert', [KakanimController::class, 'sendAlert'])->name('alert');
-
-        // Mark Notification as Read (Method markRead)
-        // URL: /kakanim/notif/{notifikasi}/baca
-        Route::post('/notif/{notifikasi}/baca', [KakanimController::class, 'markRead'])->name('notif.read');
-        
-    });
-
+    Route::prefix('kakanim')->middleware(['auth', 'role:kakanim'])->group(function () {
+ 
+    Route::get('/', [KakanimController::class, 'index'])
+        ->name('kakanim.dashboard');
+ 
+    // Layer 1: ticket list per section
+    Route::get('/section/{section}', [KakanimController::class, 'sectionTickets'])
+        ->name('kakanim.section.tickets');
+ 
+    // ── DEBUG ONLY: open this URL in your browser to inspect raw DB state ──
+    // e.g. /kakanim/section/Tata%20Usaha/debug
+    // Remove before deploying to production!
+    Route::get('/section/{section}/debug', [KakanimController::class, 'sectionDebug'])
+        ->name('kakanim.section.debug');
+ 
+    // Layer 2: full ticket detail
+    Route::get('/ticket/{id}', [KakanimController::class, 'ticketDetail'])
+        ->name('kakanim.ticket.detail');
+ 
+    Route::post('/alert', [KakanimController::class, 'sendAlert'])
+        ->name('kakanim.alert');
+ 
+    Route::post('/notif/{notifikasi}/baca', [KakanimController::class, 'markRead'])
+        ->name('kakanim.notif.read');
 });
-
 /*
 |--------------------------------------------------------------------------
 | KHUSUS TIKKIM — Manajemen/Moderasi Tindak Lanjut

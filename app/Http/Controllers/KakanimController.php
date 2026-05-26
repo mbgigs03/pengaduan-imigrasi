@@ -13,16 +13,16 @@ use Illuminate\Support\Facades\DB;
 class KakanimController extends Controller
 {
     // ═══════════════════════════════════════════════════════════
-    // DASHBOARD — data strategis + panel SLA alert
+    // DASHBOARD — data strategis + panel SLA alert (summarized)
     // ═══════════════════════════════════════════════════════════
     public function index(Request $request)
     {
         $tahun = (int) $request->get('tahun', now()->year);
 
-        // ── Scorecard (1 query) ───────────────────────────────
+        // ── Scorecard ─────────────────────────────────────────
         $scorecard = DB::selectOne("
             SELECT
-                COUNT(*)                                                          AS total,
+                COUNT(*)                                                        AS total,
                 COUNT(*) FILTER (WHERE status = 'selesai')                        AS selesai,
                 COUNT(*) FILTER (WHERE status != 'selesai')                       AS belum_selesai,
                 COUNT(*) FILTER (WHERE status != 'selesai'
@@ -70,7 +70,7 @@ class KakanimController extends Controller
         ", ['tahun' => $tahun]);
 
         // ── Tren bulanan ──────────────────────────────────────
-        $trenBulanan     = DB::select("
+        $trenBulanan = DB::select("
             SELECT
                 EXTRACT(MONTH FROM tgl_pengaduan)::int AS bulan,
                 COUNT(*) AS masuk,
@@ -130,34 +130,31 @@ class KakanimController extends Controller
             GROUP BY jenis_layanan
         ", ['tahun' => $tahun]);
 
-        // ── Panel SLA Alert: seksi dengan kondisi gawat ───────
-        // Menggabungkan over SLA + H-1 dalam satu query
+        // ── SLA Alert Summary ─────────────────────────────────
         $slaAlert = DB::select("
             SELECT
                 seksi_tujuan AS seksi,
-                COUNT(*) FILTER (WHERE deadline_tindak_lanjut < NOW())
-                    AS jumlah_over,
-                COUNT(*) FILTER (
-                    WHERE deadline_tindak_lanjut BETWEEN NOW()
-                      AND NOW() + INTERVAL '24 hours'
-                )           AS jumlah_warn,
-                MIN(deadline_tindak_lanjut) FILTER (WHERE deadline_tindak_lanjut < NOW())
-                    AS deadline_paling_lama,
-                ARRAY_AGG(nomor_tiket ORDER BY deadline_tindak_lanjut ASC)
-                    FILTER (WHERE deadline_tindak_lanjut < NOW() OR
-                                  deadline_tindak_lanjut <= NOW() + INTERVAL '24 hours')
-                    AS tiket_terdampak
+                COUNT(*) FILTER (WHERE status != 'selesai' AND deadline_tindak_lanjut < NOW()) AS jumlah_over,
+                COUNT(*) FILTER (WHERE status != 'selesai' AND deadline_tindak_lanjut BETWEEN NOW() AND NOW() + INTERVAL '24 hours') AS jumlah_warn,
+                ROUND(COUNT(*) FILTER (WHERE status != 'selesai' AND deadline_tindak_lanjut < NOW())::numeric / NULLIF(COUNT(*) FILTER (WHERE status != 'selesai'), 0) * 100, 1) AS risk_percentage
             FROM pengaduans
             WHERE status != 'selesai'
-              AND (
-                  deadline_tindak_lanjut < NOW()
-                  OR deadline_tindak_lanjut BETWEEN NOW() AND NOW() + INTERVAL '24 hours'
-              )
+            AND (deadline_tindak_lanjut < NOW() OR deadline_tindak_lanjut BETWEEN NOW() AND NOW() + INTERVAL '24 hours')
             GROUP BY seksi_tujuan
             ORDER BY jumlah_over DESC, jumlah_warn DESC
         ");
 
-        // ── Riwayat peringatan yang sudah dikirim Kakanim ─────
+        $slaAlert = collect($slaAlert)->map(function ($item) {
+            $item->severity       = $item->jumlah_over > 0 ? 'danger' : 'warning';
+            $item->priority_score = ($item->jumlah_over * 5) + ($item->jumlah_warn * 2);
+            $item->label          = $item->jumlah_over > 0
+                ? "{$item->jumlah_over} Aduan Over SLA"
+                : "{$item->jumlah_warn} Deadline Mendekati";
+
+            return $item;
+        });
+
+        // ── Riwayat peringatan ────────────────────────────────
         $riwayatAlert = Notifikasi::with('penerima:id,name')
             ->where('from_user_id', Auth::id())
             ->where('tipe', 'alert')
@@ -185,60 +182,111 @@ class KakanimController extends Controller
         ));
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // SEND ALERT — POST /kakanim/alert
-    // Kirim peringatan ke semua admin seksi yang bersangkutan
-    // ═══════════════════════════════════════════════════════════
-    public function sendAlert(Request $request)
+    /**
+     * AJAX — Ambil daftar tiket berdasarkan seksi (Layer 1)
+     */
+    public function sectionTickets(string $section)
     {
+        $section = urldecode($section);
+        $now = Carbon::now();
+
+        $tickets = Pengaduan::query()
+            ->where('seksi_tujuan', $section)
+            ->where('status', '!=', 'selesai')
+            ->where(function ($q) use ($now) {
+                $q->where('deadline_tindak_lanjut', '<', $now)
+                  ->orWhereBetween('deadline_tindak_lanjut', [$now, $now->copy()->addHours(24)]);
+            })
+            ->latest('deadline_tindak_lanjut')
+            ->get(['id', 'nomor_tiket', 'nama', 'status', 'deadline_tindak_lanjut', 'tgl_pengaduan'])
+            ->map(function ($ticket) use ($now) {
+                $deadline = Carbon::parse($ticket->deadline_tindak_lanjut);
+                $isOver   = $deadline->isPast();
+
+                $ticket->severity       = $isOver ? 'danger' : 'warning';
+                $ticket->sla_status     = $isOver ? 'OVER SLA' : 'APPROACHING';
+                $ticket->deadline_human = $deadline->translatedFormat('d M Y H:i');
+                
+                return $ticket;
+            });
+
+        return response()->json($tickets);
+    }
+
+    /**
+     * AJAX — Detail lengkap satu tiket (Layer 2)
+     */
+    public function ticketDetail($id)
+    {
+        try {
+            // Cukup cari berdasarkan ID, tanpa memanggil fungsi relasi with() yang tidak ada
+            $pengaduan = Pengaduan::findOrFail($id);
+
+            return response()->json([
+                'id'              => $pengaduan->id,
+                'nomor_tiket'     => $pengaduan->nomor_tiket,
+                'status'          => $pengaduan->status,
+                'severity'        => $pengaduan->severity ?? 'warning',
+                'nama'            => $pengaduan->nama, 
+                'aduan'           => $pengaduan->aduan, 
+                
+                // Mengambil string langsung dari kolom tabel pengaduan
+                'kanal_pengaduan' => $pengaduan->kanal_pengaduan ?? '—',
+                'jenis_layanan'   => $pengaduan->jenis_layanan ?? '—',
+                'seksi_tujuan'    => $pengaduan->seksi_tujuan ?? '—',
+                
+                'deadline_human'  => $pengaduan->deadline_tindak_lanjut ? $pengaduan->deadline_tindak_lanjut->format('d M Y H:i') : '—',
+                'sla_reason'      => $pengaduan->keterangan_admin ?? '—'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Terjadi kesalahan di server.',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * POST — Kirim Alert Notifikasi
+     */
+    public function sendAlert(Request $request)
+    {   
         $validated = $request->validate([
             'target_seksi' => ['required', 'string', 'max:100'],
             'pesan'        => ['required', 'string', 'min:10', 'max:1000'],
             'tipe_alert'   => ['required', 'in:over_sla,warn_sla,umum'],
-        ], [
-            'target_seksi.required' => 'Pilih seksi tujuan.',
-            'pesan.required'        => 'Isi pesan peringatan.',
-            'pesan.min'             => 'Pesan minimal 10 karakter.',
-            'tipe_alert.required'   => 'Pilih jenis peringatan.',
         ]);
 
-        $pengirim    = Auth::user();
+        $pengirim = Auth::user();
         $targetSeksi = $validated['target_seksi'];
-        $tipeAlert   = $validated['tipe_alert'];
 
-        // Hitung konteks SLA untuk meta
         $stats = DB::selectOne("
             SELECT
-                COUNT(*) FILTER (WHERE deadline_tindak_lanjut < NOW())         AS jumlah_over,
-                COUNT(*) FILTER (WHERE deadline_tindak_lanjut BETWEEN NOW()
-                    AND NOW() + INTERVAL '24 hours')                           AS jumlah_warn
+                COUNT(*) FILTER (WHERE deadline_tindak_lanjut < NOW()) AS jumlah_over,
+                COUNT(*) FILTER (WHERE deadline_tindak_lanjut BETWEEN NOW() AND NOW() + INTERVAL '24 hours') AS jumlah_warn
             FROM pengaduans
             WHERE seksi_tujuan = :seksi AND status != 'selesai'
         ", ['seksi' => $targetSeksi]);
 
-        // Susun judul otomatis berdasarkan tipe
-        $judul = match ($tipeAlert) {
-            'over_sla'  => "🚨 Peringatan: {$stats->jumlah_over} aduan melewati SLA di Seksi {$targetSeksi}",
-            'warn_sla'  => "⚠️ Pengingat: {$stats->jumlah_warn} aduan mendekati tenggat di Seksi {$targetSeksi}",
-            default     => "📢 Pemberitahuan dari Pimpinan untuk Seksi {$targetSeksi}",
+        $judul = match ($validated['tipe_alert']) {
+            'over_sla' => "🚨 Peringatan SLA: {$stats->jumlah_over} aduan di {$targetSeksi}",
+            'warn_sla' => "⚠️ Pengingat SLA: {$stats->jumlah_warn} aduan di {$targetSeksi}",
+            default    => "📢 Pesan Pimpinan: {$targetSeksi}",
         };
 
-        // Cari semua admin seksi target
         $targetUsers = User::whereHas('profile', fn($q) =>
             $q->where('role', 'seksi')->where('seksi', $targetSeksi)
         )->get();
 
-        $meta = [
-            'jumlah_over_sla' => (int) ($stats->jumlah_over ?? 0),
-            'jumlah_warn_sla' => (int) ($stats->jumlah_warn ?? 0),
-            'dikirim_oleh'    => $pengirim->name,
-            'jabatan'         => 'Kepala Kantor Imigrasi',
-            'tipe_alert'      => $tipeAlert,
-        ];
+        DB::transaction(function () use ($pengirim, $targetSeksi, $validated, $judul, $targetUsers, $stats) {
+            $meta = [
+                'jumlah_over_sla' => (int)$stats->jumlah_over,
+                'jumlah_warn_sla' => (int)$stats->jumlah_warn,
+                'dikirim_oleh'    => $pengirim->name,
+                'tipe_alert'      => $validated['tipe_alert']
+            ];
 
-        DB::transaction(function () use (
-            $pengirim, $targetSeksi, $validated, $judul, $meta, $targetUsers
-        ) {
             if ($targetUsers->isNotEmpty()) {
                 foreach ($targetUsers as $user) {
                     Notifikasi::create([
@@ -252,7 +300,6 @@ class KakanimController extends Controller
                     ]);
                 }
             } else {
-                // Broadcast ke seksi meski belum ada user terdaftar
                 Notifikasi::create([
                     'from_user_id' => $pengirim->id,
                     'to_user_id'   => null,
@@ -265,28 +312,16 @@ class KakanimController extends Controller
             }
         });
 
-        $jumlahPenerima = $targetUsers->count() ?: 1;
-
-        return back()->with(
-            'success',
-            "Peringatan berhasil dikirim ke Seksi {$targetSeksi} ({$jumlahPenerima} penerima)."
-        );
+        return back()->with('success', "Peringatan dikirim ke Seksi {$targetSeksi}.");
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // MARK NOTIF READ — POST /kakanim/notif/{id}/baca
-    // ═══════════════════════════════════════════════════════════
+    /**
+     * POST — Mark as read
+     */
     public function markRead(Notifikasi $notifikasi)
     {
-        // Hanya pengirim atau penerima yang bisa mark read
-        abort_unless(
-            $notifikasi->from_user_id === Auth::id()
-            || $notifikasi->to_user_id === Auth::id(),
-            403
-        );
-
+        abort_unless($notifikasi->from_user_id === Auth::id() || $notifikasi->to_user_id === Auth::id(), 403);
         $notifikasi->markAsRead();
-
         return response()->json(['ok' => true]);
     }
 }
