@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pengaduan;
+use App\Models\FaqTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -560,10 +561,13 @@ class PengaduanController extends Controller
     // ─── Method lainnya ────────────────────────────────────────
     public function create()
     {
+        // Tarik data FAQ dari database
+        $faqs = FaqTemplate::orderBy('topik', 'asc')->get();
+
         if (Auth::check()) {
-            return view('pengaduan.create');        // dashboard layout
+            return view('pengaduan.create', compact('faqs'));        // dashboard layout
         }
-        return view('pengaduan.create-public');     // standalone publik
+        return view('pengaduan.create-public', compact('faqs'));     // standalone publik
     }
 
     public function track()

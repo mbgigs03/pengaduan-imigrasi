@@ -69,7 +69,11 @@ Route::middleware('auth')->group(function () {
         // Tambahkan route eksklusif TIKKIM di sini jika diperlukan, contoh:
         // Route::get('/laporan/export', [LaporanController::class, 'export'])->name('laporan.export');
         Route::get('/pengaduan/sla', [PengaduanController::class, 'sla'])->name('pengaduan.sla');
-        
+
+        Route::get('/faq', [App\Http\Controllers\FaqTemplateController::class, 'index'])->name('faq.index');
+        Route::post('/faq', [App\Http\Controllers\FaqTemplateController::class, 'store'])->name('faq.store');
+        Route::put('/faq/{faq}', [App\Http\Controllers\FaqTemplateController::class, 'update'])->name('faq.update');
+        Route::delete('/faq/{faq}', [App\Http\Controllers\FaqTemplateController::class, 'destroy'])->name('faq.destroy');
     });
 
         

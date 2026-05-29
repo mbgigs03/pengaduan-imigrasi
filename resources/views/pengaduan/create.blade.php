@@ -70,7 +70,7 @@
                                 </div>
                                 <span class="text-[10px] font-semibold hidden sm:block transition-colors"
                                       :class="{'text-blue-600': currentStep === i, 'text-emerald-600': isStepDone(i), 'text-slate-400': !isStepDone(i) && currentStep !== i}"
-                                      x-text="s.label"></span>
+                                      x-text="i === 2 && jenis === 'penanganan' ? 'Aduan' : s.label"></span>
                             </button>
                             <div x-show="i < steps.length - 1" class="step-connector mx-1 sm:mx-2"
                                  :class="isStepDone(i) ? 'bg-emerald-400' : 'bg-slate-200'"></div>
@@ -100,7 +100,7 @@
                                                 <svg class="w-5 h-5" :class="jenis === 'informasi' ? 'text-blue-600' : 'text-slate-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                             </div>
                                             <div>
-                                                <p class="font-bold text-sm" :class="jenis === 'informasi' ? 'text-blue-800' : 'text-slate-700'">Pemberian Informasi</p>
+                                                <p class="font-bold text-sm" :class="jenis === 'informasi' ? 'text-blue-800' : 'text-slate-700'">Permintaan Informasi</p>
                                                 <p class="text-xs text-slate-500 mt-0.5">Pemohon butuh kejelasan prosedur atau data</p>
                                             </div>
                                         </div>
@@ -115,7 +115,7 @@
                                                 <svg class="w-5 h-5" :class="jenis === 'penanganan' ? 'text-amber-600' : 'text-slate-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                             </div>
                                             <div>
-                                                <p class="font-bold text-sm" :class="jenis === 'penanganan' ? 'text-amber-800' : 'text-slate-700'">Penanganan Pengaduan</p>
+                                                <p class="font-bold text-sm" :class="jenis === 'penanganan' ? 'text-amber-800' : 'text-slate-700'">Pengajuan Pengaduan</p>
                                                 <p class="text-xs text-slate-500 mt-0.5">Keluhan atau ketidakpuasan layanan</p>
                                             </div>
                                         </div>
@@ -194,44 +194,38 @@
                         </div>
                     </template>
 
+                    {{-- UNTUK PEMBERIAN INFORMASI --}}
+                    {{-- UNTUK PEMBERIAN INFORMASI --}}
                     <template x-if="jenis === 'informasi'">
                         <div>
-                            <h2 class="text-base font-bold text-slate-800 mb-1">Topik Pertanyaan</h2>
-                            <p class="text-xs text-slate-500 mb-6">Pilih template jawaban FAQ agar lebih cepat, atau ketik manual.</p>
-                            
-                            <div class="flex flex-col gap-1.5 mb-4">
+                            <h2 class="text-base font-bold text-slate-800 mb-1" x-text="seksi === 'Tikkim' ? 'Topik Pertanyaan' : 'Uraian Pertanyaan'"></h2>
+                            <p class="text-xs text-slate-500 mb-6" x-text="seksi === 'Tikkim' ? 'Pilih topik yang sesuai — jawaban akan terisi otomatis.' : 'Jelaskan pertanyaan secara detail.'"></p>
+
+                            {{-- HANYA MUNCUL JIKA KATEGORI = TIKKIM (Paspor) --}}
+                            <div x-show="seksi === 'Tikkim'" class="flex flex-col gap-1.5 mb-4">
                                 <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">Topik</label>
                                 <select name="topik_faq" x-model="topik" @change="applyTemplate()" class="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition">
                                     <option value="">— Pilih topik —</option>
-                                    <optgroup label="Permohonan Paspor">
-                                        <option value="paspor_baru_dewasa">Persyaratan paspor baru (dewasa)</option>
-                                        <option value="paspor_anak">Persyaratan paspor anak</option>
-                                        <option value="paspor_umroh_haji">Paspor untuk umroh / haji</option>
-                                        <option value="paspor_cpmi">Paspor untuk bekerja ke luar negeri (CPMI)</option>
-                                    </optgroup>
-                                    <optgroup label="Masalah Paspor">
-                                        <option value="paspor_rusak">Penggantian paspor rusak</option>
-                                        <option value="paspor_hilang">Penggantian paspor hilang</option>
-                                    </optgroup>
-                                    <optgroup label="Layanan Lain">
-                                        <option value="pengambilan_diwakilkan">Pengambilan paspor diwakilkan</option>
-                                        <option value="pembatalan_paspor">Pembatalan permohonan paspor</option>
-                                        <option value="kekurangan_berkas">Kekurangan berkas / catatan petugas</option>
-                                    </optgroup>
+                                    {{-- LOOPING DATA FAQ DARI DATABASE --}}
+                                    @foreach($faqs as $faq)
+                                        <option value="{{ $faq->topik }}">{{ $faq->topik }}</option>
+                                    @endforeach
                                     <option value="lainnya">Lainnya (isi manual)</option>
                                 </select>
                             </div>
 
-                            <div x-show="topik !== '' && topik !== 'lainnya'" x-cloak class="mb-4">
+                            {{-- KOTAK PREVIEW TEMPLATE FAQ --}}
+                            <div x-show="seksi === 'Tikkim' && topik !== '' && topik !== 'lainnya'" x-cloak class="mb-4">
                                 <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
                                     <p class="text-xs font-bold text-blue-700 uppercase tracking-wide mb-2 flex items-center gap-1.5"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Template Prosedur</p>
                                     <textarea rows="10" readonly x-model="currentTemplate" class="w-full bg-white/70 border-0 text-sm text-slate-700 focus:ring-0 resize-none rounded-lg p-3"></textarea>
                                 </div>
                             </div>
 
-                            <div x-show="topik === 'lainnya'" x-cloak>
+                            {{-- MUNCUL JIKA BUKAN TIKKIM ATAU PILIH LAINNYA --}}
+                            <div x-show="seksi !== 'Tikkim' || topik === 'lainnya'" x-cloak>
                                 <label class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5 block">Uraian Pertanyaan <span class="text-red-500">*</span></label>
-                                <textarea id="aduan_manual" rows="6" x-model="aduan" placeholder="Jelaskan pertanyaan pemohon..." class="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition resize-none" :required="topik === 'lainnya'"></textarea>
+                                <textarea id="aduan_manual" rows="6" x-model="aduan" placeholder="Jelaskan pertanyaan secara detail..." class="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition resize-none" :required="seksi !== 'Tikkim' || topik === 'lainnya'"></textarea>
                             </div>
                         </div>
                     </template>
@@ -315,16 +309,10 @@
     <x-slot name="scripts">
         <script>
         const FAQ_TEMPLATES = {
-            paspor_baru_dewasa: `Persyaratan permohonan paspor baru (dewasa) dengan membawa dokumen ASLI:\n1. e-KTP\n2. Kartu Keluarga (KK)\n3. Akte Lahir / Buku Nikah / Ijazah SD-SMA\n4. Paspor lama (jika memiliki)\n\nBiaya paspor:\n- Elektronik masa berlaku 5 tahun: Rp 650.000\n- Elektronik masa berlaku 10 tahun: Rp 950.000`,
-            paspor_anak: `Persyaratan permohonan paspor anak (belum memiliki e-KTP) dengan dokumen ASLI:\n1. e-KTP kedua orang tua kandung\n2. Kartu Keluarga (KK)\n3. Akta Lahir anak\n4. Buku / Surat Nikah orang tua\n5. Paspor kedua orang tua / Paspor lama anak`,
-            paspor_umroh_haji: `Persyaratan paspor untuk umroh / haji dengan dokumen ASLI:\n1. e-KTP\n2. Kartu Keluarga (KK)\n3. Akte Lahir / Buku Nikah / Ijazah SD-SMA\n4. Paspor lama (jika memiliki)\n\nCatatan nama satu kata — wajib tambahan dokumen:\n- Surat rekomendasi dari travel umroh / haji`,
-            paspor_cpmi: `Persyaratan paspor untuk bekerja ke luar negeri (CPMI) dengan dokumen ASLI:\n1. e-KTP\n2. Kartu Keluarga (KK)\n3. Akta Lahir / Ijazah SD-SMA / Buku Nikah\n4. Paspor lama (jika memiliki)`,
-            paspor_rusak: `Prosedur penggantian paspor RUSAK:\nDatang langsung ke Kantor Imigrasi TANPA mendaftar M-Paspor untuk proses BAP.\nBiaya: Denda Rp 500.000 + biaya paspor.`,
-            paspor_hilang: `Prosedur penggantian paspor HILANG:\n1. Urus Surat Keterangan Kehilangan di kantor kepolisian terdekat\n2. Datang ke Kantor Imigrasi mulai pukul 08.00 WIB TANPA daftar M-Paspor untuk BAP.\nBiaya: Denda Rp 1.000.000 + biaya paspor.`,
-            pengambilan_diwakilkan: `Pengambilan paspor DIWAKILKAN:\n\nA. Beda KK: Surat kuasa bermaterai Rp 10.000, e-KTP asli pengambil, Fotokopi e-KTP pemilik, Struk.\nB. Satu KK: KK asli, e-KTP asli pengambil, Struk.`,
-            pembatalan_paspor: `Permohonan pembatalan paspor.\nMohon lengkapi data berikut:\n- Nama Lengkap Pemohon :\n- Nomor WhatsApp :\n- Alasan Pembatalan :`,
-            kekurangan_berkas: `Perihal kekurangan berkas / catatan dari petugas.\nMohon informasikan:\n- Nama lengkap pemohon :\n- Tanggal kunjungan :\n- Berkas yang kurang :`,
-            lainnya: '',
+            @foreach($faqs as $faq)
+            "{!! addslashes($faq->topik) !!}": {!! json_encode($faq->template) !!},
+            @endforeach
+            lainnya: ''
         };
 
         function pengaduanForm() {
@@ -339,7 +327,14 @@
 
                 applyTemplate() { this.currentTemplate = FAQ_TEMPLATES[this.topik] ?? ''; },
                 goToStep(i) { if (this.canGoToStep(i)) this.currentStep = i; },
-                nextStep() { if (this.canProceed() && this.currentStep < 3) this.currentStep++; },
+                nextStep() {
+                    if (this.canProceed() && this.currentStep < 3) {
+                        this.currentStep++;
+                        if (this.currentStep === 3 && this.jenis === 'informasi' && this.seksi === 'Tikkim' && this.topik !== '' && this.topik !== 'lainnya') {
+                            this.showConfirm = true;
+                        }
+                    }
+                },
                 prevStep() { if (this.currentStep > 0) this.currentStep--; },
                 isStep0Valid() { return this.jenis !== '' && this.seksi !== ''; },
                 isStep1Valid() {
@@ -347,12 +342,15 @@
                     return this.jenis === 'informasi' ? base && this.nik.trim() !== '' : base;
                 },
                 isStep2Valid() {
-                    if (this.jenis === 'penanganan') return this.aduan.trim() !== '';
-                    if (this.jenis === 'informasi') {
+                    if (this.jenis === 'penanganan') {
+                        return this.aduan.trim() !== '';
+                    } else if (this.jenis === 'informasi') {
+                        if (this.seksi !== 'Tikkim') return this.aduan.trim() !== '';
                         if (this.topik === '') return false;
                         if (this.topik === 'lainnya') return this.aduan.trim() !== '';
                         return true;
-                    } return false;
+                    }
+                    return false;
                 },
                 isStepDone(i) {
                     if (i === 0) return this.isStep0Valid();
@@ -360,12 +358,11 @@
                     if (i === 2) return this.isStep2Valid();
                     return false;
                 },
-                canGoToStep(i) {
-                    if (i === 0) return true;
-                    if (i === 1) return this.isStep0Valid();
-                    if (i === 2) return this.isStep0Valid() && this.isStep1Valid();
-                    if (i === 3) return this.isStep0Valid() && this.isStep1Valid() && this.isStep2Valid();
-                    return false;
+                goToStep(i) {
+                    if (this.canGoToStep(i)) {
+                        this.currentStep = i;
+                        this.showConfirm = (i === 3 && this.jenis === 'informasi' && this.seksi === 'Tikkim' && this.topik !== '' && this.topik !== 'lainnya');
+                    }
                 },
                 canProceed() {
                     if (this.currentStep === 0) return this.isStep0Valid();

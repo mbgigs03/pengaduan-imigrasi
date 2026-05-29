@@ -130,7 +130,7 @@
                                           'text-emerald-600': isStepDone(i),
                                           'text-slate-400': !isStepDone(i) && currentStep !== i
                                       }"
-                                      x-text="s.label"></span>
+                                      x-text="i === 2 && jenis === 'penanganan' ? 'Aduan' : s.label"></span>
                             </button>
                             {{-- Connector --}}
                             <div x-show="i < steps.length - 1"
@@ -175,7 +175,7 @@
                                             </div>
                                             <div>
                                                 <p class="font-bold text-sm" :class="jenis === 'informasi' ? 'text-blue-800' : 'text-slate-700'">
-                                                    Pemberian Informasi
+                                                    Permintaan Informasi
                                                 </p>
                                                 <p class="text-xs text-slate-500 mt-0.5">Butuh kejelasan prosedur atau data layanan imigrasi</p>
                                             </div>
@@ -202,7 +202,7 @@
                                             </div>
                                             <div>
                                                 <p class="font-bold text-sm" :class="jenis === 'penanganan' ? 'text-amber-800' : 'text-slate-700'">
-                                                    Penanganan Pengaduan
+                                                    Pengajuan Pengaduan
                                                 </p>
                                                 <p class="text-xs text-slate-500 mt-0.5">Keluhan atau ketidakpuasan terhadap layanan</p>
                                             </div>
@@ -377,41 +377,28 @@
                     </template>
 
                     {{-- UNTUK PEMBERIAN INFORMASI: topik pilihan --}}
+                    {{-- UNTUK PEMBERIAN INFORMASI --}}
                     <template x-if="jenis === 'informasi'">
                         <div>
-                            <h2 class="text-base font-bold text-slate-800 mb-1">Topik Pertanyaan</h2>
-                            <p class="text-xs text-slate-500 mb-6">
-                                Pilih topik yang sesuai — jawaban akan terisi otomatis.
-                                Pilih <strong>"Lainnya"</strong> untuk mengisi pertanyaan secara manual.
-                            </p>
+                            <h2 class="text-base font-bold text-slate-800 mb-1" x-text="seksi === 'Tikkim' ? 'Topik Pertanyaan' : 'Uraian Pertanyaan'"></h2>
+                            <p class="text-xs text-slate-500 mb-6" x-text="seksi === 'Tikkim' ? 'Pilih topik yang sesuai — jawaban akan terisi otomatis.' : 'Jelaskan pertanyaan Anda secara detail.'"></p>
 
-                            <div class="flex flex-col gap-1.5 mb-4">
+                            {{-- HANYA MUNCUL JIKA KATEGORI = TIKKIM (Paspor) --}}
+                            <div x-show="seksi === 'Tikkim'" class="flex flex-col gap-1.5 mb-4">
                                 <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">Topik</label>
                                 <select x-model="topik" @change="applyTemplate()"
                                         class="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50
                                                focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition">
                                     <option value="">— Pilih topik —</option>
-                                    <optgroup label="Permohonan Paspor">
-                                        <option value="paspor_baru_dewasa">Persyaratan paspor baru (dewasa)</option>
-                                        <option value="paspor_anak">Persyaratan paspor anak</option>
-                                        <option value="paspor_umroh_haji">Paspor untuk umroh / haji</option>
-                                        <option value="paspor_cpmi">Paspor untuk bekerja ke luar negeri (CPMI)</option>
-                                    </optgroup>
-                                    <optgroup label="Masalah Paspor">
-                                        <option value="paspor_rusak">Penggantian paspor rusak</option>
-                                        <option value="paspor_hilang">Penggantian paspor hilang</option>
-                                    </optgroup>
-                                    <optgroup label="Layanan Lain">
-                                        <option value="pengambilan_diwakilkan">Pengambilan paspor diwakilkan</option>
-                                        <option value="pembatalan_paspor">Pembatalan permohonan paspor</option>
-                                        <option value="kekurangan_berkas">Kekurangan berkas / catatan petugas</option>
-                                    </optgroup>
+                                    {{-- LOOPING DATA FAQ DARI DATABASE --}}
+                                    @foreach($faqs as $faq)
+                                        <option value="{{ $faq->topik }}">{{ $faq->topik }}</option>
+                                    @endforeach
                                     <option value="lainnya">Lainnya (isi manual)</option>
                                 </select>
                             </div>
 
-                            {{-- Template answer (readonly) --}}
-                            <div x-show="topik !== '' && topik !== 'lainnya'" x-cloak class="mb-4">
+                            <div x-show="seksi === 'Tikkim' && topik !== '' && topik !== 'lainnya'" x-cloak class="mb-4">
                                 <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
                                     <p class="text-xs font-bold text-blue-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -424,8 +411,8 @@
                                 </div>
                             </div>
 
-                            {{-- Manual textarea --}}
-                            <div x-show="topik === 'lainnya'" x-cloak>
+                            {{-- MUNCUL JIKA BUKAN TIKKIM ATAU PILIH LAINNYA --}}
+                            <div x-show="seksi !== 'Tikkim' || topik === 'lainnya'" x-cloak>
                                 <label class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5 block">
                                     Uraian Pertanyaan <span class="text-red-500">*</span>
                                 </label>
@@ -434,9 +421,8 @@
                                           placeholder="Jelaskan secara detail pertanyaan Anda..."
                                           class="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50
                                                  focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition
-                                                 placeholder-slate-300 resize-none @error('aduan') border-red-300 @enderror"
-                                          :required="topik === 'lainnya'"></textarea>
-                                @error('aduan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                                                 placeholder-slate-300 resize-none"
+                                          :required="seksi !== 'Tikkim' || topik === 'lainnya'"></textarea>
                             </div>
                         </div>
                     </template>
@@ -445,8 +431,8 @@
                 {{-- ══ STEP 3: Dokumen Lampiran / Konfirmasi ════════════════════ --}}
                 <div class="p-6" x-show="currentStep === 3" x-transition>
                     
-                    {{-- UNTUK PEMBERIAN INFORMASI dengan topik pilihan: Konfirmasi --}}
-                    <template x-if="jenis === 'informasi' && topik !== '' && topik !== 'lainnya'">
+                    {{-- UNTUK PEMBERIAN INFORMASI (Hanya Tikkim & Pilih Topik FAQ) --}}
+                    <template x-if="jenis === 'informasi' && seksi === 'Tikkim' && topik !== '' && topik !== 'lainnya'">
                         <div x-data="{ showConfirm: true }" x-show="showConfirm" x-cloak>
                             <h2 class="text-base font-bold text-slate-800 mb-4">Verifikasi Pemahaman</h2>
                             <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
@@ -494,7 +480,7 @@
                     <template x-if="jenis === 'penanganan' || (jenis === 'informasi' && (topik === '' || topik === 'lainnya'))">
                         <div>
                             <h2 class="text-base font-bold text-slate-800 mb-1">Dokumen Lampiran</h2>
-                            <p class="text-xs text-slate-500 mb-6">Unggah dokumen pendukung (opsional).</p>
+                            <p class="text-xs text-slate-500 mb-6">Unggah dokumen pendukung jika ada.</p>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
@@ -598,135 +584,10 @@
 
     <script>
     const FAQ_TEMPLATES = {
-        paspor_baru_dewasa: `Persyaratan permohonan paspor baru (dewasa) dengan membawa dokumen ASLI:
-1. e-KTP
-2. Kartu Keluarga (KK)
-3. Akte Lahir / Buku Nikah / Ijazah SD-SMA (pilih salah satu; nama, tempat tanggal lahir, dan nama ayah harus sama dengan e-KTP dan KK)
-4. Paspor lama (jika memiliki)
-
-Pendaftaran:
-- Pemohon usia di bawah 60 tahun wajib mendaftar online melalui aplikasi M-Paspor (Playstore/Appstore)
-- Setelah mendaftar dan melakukan pembayaran, datang langsung ke kantor sesuai lokasi dan waktu yang dipilih
-- Bawa semua dokumen ASLI untuk proses foto dan wawancara
-
-Biaya paspor:
-- Elektronik masa berlaku 5 tahun: Rp 650.000
-- Elektronik masa berlaku 10 tahun: Rp 950.000
-
-Layanan:
-- Reguler: paspor jadi 3 hari kerja setelah pembayaran, foto, dan wawancara
-- Percepatan: paspor jadi 4 jam (berkas diterima sebelum 10.00 WIB), biaya tambahan Rp 1.000.000`,
-
-        paspor_anak: `Persyaratan permohonan paspor anak (belum memiliki e-KTP) dengan dokumen ASLI:
-1. e-KTP kedua orang tua kandung
-2. Kartu Keluarga (KK)
-3. Akta Lahir anak
-4. Buku / Surat Nikah orang tua; jika bercerai lampirkan surat perceraian
-5. Paspor kedua orang tua (jika memiliki)
-6. Paspor lama anak (jika memiliki)
-
-Ketentuan kehadiran orang tua:
-- Kedua orang tua wajib hadir saat proses permohonan
-- Jika salah satu tidak bisa hadir, wajib melampirkan surat kuasa bermaterai beserta alasan ketidakhadirannya
-
-Pendaftaran:
-- Anak usia di atas 3 tahun wajib daftar online melalui M-Paspor
-- Bawa semua dokumen ASLI
-
-Biaya paspor anak:
-- Elektronik masa berlaku 5 tahun: Rp 650.000
-
-Layanan:
-- Reguler: 3 hari kerja | Percepatan: 4 jam (sebelum 10.00 WIB), tambahan Rp 1.000.000`,
-
-        paspor_umroh_haji: `Persyaratan paspor untuk umroh / haji dengan dokumen ASLI:
-1. e-KTP
-2. Kartu Keluarga (KK)
-3. Akte Lahir / Buku Nikah / Ijazah SD-SMA
-4. Paspor lama (jika memiliki)
-
-Catatan nama satu kata — wajib tambahan dokumen:
-- Surat rekomendasi dari travel umroh / haji
-- Izin operasional travel umroh
-- BPIH bagi calon jamaah haji
-
-Biaya: Elektronik 5 tahun Rp 650.000 | 10 tahun Rp 950.000
-Layanan: Reguler 3 hari | Percepatan 4 jam + Rp 1.000.000`,
-
-        paspor_cpmi: `Persyaratan paspor untuk bekerja ke luar negeri (CPMI) dengan dokumen ASLI:
-1. e-KTP
-2. Kartu Keluarga (KK)
-3. Akta Lahir / Ijazah SD-SMA / Buku Nikah
-4. Paspor lama (jika memiliki)
-
-Paspor GRATIS untuk CPMI pertama kali membuat paspor, tambahan dokumen:
-- ID CPMI dari BP2MI, ATAU
-- Kontrak kerja yang telah ditandatangani / sertifikat kelulusan G to G
-
-Biaya: Elektronik 5 tahun Rp 650.000 | 10 tahun Rp 950.000`,
-
-        paspor_rusak: `Prosedur penggantian paspor RUSAK:
-
-Datang langsung ke Kantor Imigrasi TANPA mendaftar M-Paspor untuk proses BAP.
-
-Dokumen ASLI yang dibawa:
-1. e-KTP
-2. Kartu Keluarga (KK)
-3. Akta Lahir / Ijazah SD-SMA / Buku Nikah
-4. Paspor yang rusak
-
-Biaya: Denda Rp 500.000 + biaya paspor (5 tahun Rp 650.000 | 10 tahun Rp 950.000)`,
-
-        paspor_hilang: `Prosedur penggantian paspor HILANG:
-
-1. Urus Surat Keterangan Kehilangan di kantor kepolisian terdekat
-2. Datang ke Kantor Imigrasi mulai pukul 08.00 WIB TANPA daftar M-Paspor untuk BAP
-
-Dokumen ASLI:
-1. e-KTP
-2. Kartu Keluarga (KK)
-3. Akta Lahir / Ijazah SD-SMA / Buku Nikah
-4. Surat Keterangan Kehilangan dari kepolisian
-
-Biaya: Denda Rp 1.000.000 + biaya paspor (5 tahun Rp 650.000 | 10 tahun Rp 950.000)`,
-
-        pengambilan_diwakilkan: `Pengambilan paspor DIWAKILKAN:
-
-A. Diwakilkan ke orang BERBEDA KK:
-1. Surat kuasa bermaterai Rp 10.000
-2. Lembar pengambilan dari petugas
-3. Struk pembayaran
-4. e-KTP asli pengambil
-5. Fotokopi e-KTP pemilik paspor
-
-B. Diwakilkan ke keluarga SATU KK:
-1. Lembar pengambilan dari petugas
-2. Struk pembayaran
-3. KK asli
-4. e-KTP asli pengambil`,
-
-        pembatalan_paspor: `Permohonan pembatalan paspor.
-
-Mohon lengkapi data berikut:
-
-- Nama Lengkap Pemohon Paspor    :
-- Alamat                          :
-- Nomor WhatsApp                  :
-- Tanggal Permohonan Paspor       :
-- Lokasi Foto & Wawancara         :
-- Alasan Pembatalan               :`,
-
-        kekurangan_berkas: `Perihal kekurangan berkas / catatan dari petugas.
-
-Mohon informasikan:
-- Nama lengkap pemohon            :
-- Tanggal kunjungan ke kantor     :
-- Jenis layanan yang diajukan     :
-- Catatan / berkas yang kurang    :
-
-Jika ada lembar catatan dari petugas, mohon lampirkan fotonya pada kolom bukti.`,
-
-        lainnya: '',
+        @foreach($faqs as $faq)
+        "{!! addslashes($faq->topik) !!}": {!! json_encode($faq->template) !!},
+        @endforeach
+        lainnya: ''
     };
 
     function pengaduanForm() {
@@ -793,15 +654,14 @@ Jika ada lembar catatan dari petugas, mohon lampirkan fotonya pada kolom bukti.`
             goToStep(i) {
                 if (this.canGoToStep(i)) {
                     this.currentStep = i;
-                    this.showConfirm = (i === 3 && this.jenis === 'informasi' && this.topik !== '' && this.topik !== 'lainnya');
+                    this.showConfirm = (i === 3 && this.jenis === 'informasi' && this.seksi === 'Tikkim' && this.topik !== '' && this.topik !== 'lainnya');
                 }
             },
 
             nextStep() {
                 if (this.canProceed() && this.currentStep < 3) {
                     this.currentStep++;
-                    // Trigger confirmation modal jika informasi dengan topik pilihan
-                    if (this.currentStep === 3 && this.jenis === 'informasi' && this.topik !== '' && this.topik !== 'lainnya') {
+                    if (this.currentStep === 3 && this.jenis === 'informasi' && this.seksi === 'Tikkim' && this.topik !== '' && this.topik !== 'lainnya') {
                         this.showConfirm = true;
                     }
                 }
@@ -819,17 +679,15 @@ Jika ada lembar catatan dari petugas, mohon lampirkan fotonya pada kolom bukti.`
                 return base;
             },
 
-            // Step 2 valid tergantung jenis layanan
+            // Step 2 valid tergantung jenis layanan & seksi
             isStep2Valid() {
                 if (this.jenis === 'penanganan') {
-                    // Untuk penanganan: aduan harus diisi
                     return this.aduan.trim() !== '';
                 } else if (this.jenis === 'informasi') {
-                    // Untuk informasi: topik harus dipilih
+                    if (this.seksi !== 'Tikkim') return this.aduan.trim() !== '';
                     if (this.topik === '') return false;
-                    // Jika lainnya, aduan harus diisi
                     if (this.topik === 'lainnya') return this.aduan.trim() !== '';
-                    return true; // template topik sudah terisi
+                    return true;
                 }
                 return false;
             },
