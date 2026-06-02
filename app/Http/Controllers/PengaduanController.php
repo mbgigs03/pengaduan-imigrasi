@@ -17,52 +17,69 @@ use Dompdf\Options;
 class PengaduanController extends Controller
 {
     public function index(Request $request)
-    {
-        $query = Pengaduan::query();
-        $kanalList = Pengaduan::distinct()->pluck('kanal_pengaduan')->filter()->toArray();
-        $user = Auth::user();
+{
+    $user      = Auth::user();
+    // ✅ Ambil tab aktif dari query string, default ke 'pengaduan'
+    $activeTab = in_array($request->get('tab'), ['pengaduan', 'informasi'])
+                 ? $request->get('tab')
+                 : 'pengaduan';
 
-        // 1. FILTER OTOMATIS BERDASARKAN ROLE ADMIN (Scope Keamanan)
-        // Ini harus di atas agar data yang tidak berhak tidak pernah "terpanggil"
-        if ($user->role === 'admin') {
-            if ($user->seksi === 'Doklanintalkim') {
-                $query->whereIn('seksi_tujuan', ['Doklanintalkim', 'Doklan_Paspor', 'Doklan_Izin']);
-            } elseif ($user->seksi === 'Inteldakim') {
-                $query->whereIn('seksi_tujuan', ['Inteldakim', 'Intel_WNA', 'Intel_BAP']);
-            } else {
-                $query->where('seksi_tujuan', $user->seksi);
-            }
+    // ── Base query dengan scope keamanan role ─────────────────────────
+    $baseQuery = Pengaduan::query();
+
+    if ($user->role === 'admin') {
+        if ($user->seksi === 'Doklanintalkim') {
+            $baseQuery->whereIn('seksi_tujuan', ['Doklanintalkim', 'Doklan_Paspor', 'Doklan_Izin']);
+        } elseif ($user->seksi === 'Inteldakim') {
+            $baseQuery->whereIn('seksi_tujuan', ['Inteldakim', 'Intel_WNA', 'Intel_BAP']);
+        } else {
+            $baseQuery->where('seksi_tujuan', $user->seksi);
         }
-
-        // 2. FILTER BERDASARKAN STATUS
-        if ($request->has('status') && in_array($request->status, ['pending', 'proses', 'diteruskan', 'selesai'])) {
-            $query->where('status', $request->status);
-        }
-
-        // 3. FILTER MANUAL DARI DROPDOWN UI (Jika ada)
-        if ($request->filled('seksi')) {
-            $query->where('seksi_tujuan', $request->seksi);
-        }
-
-        // 4. FILTER KEYWORD SEARCH
-        if ($request->filled('keyword')) {
-            $kw = trim($request->keyword);
-            $isTicket = preg_match('/^IMI-\d{8}-\d+$/i', $kw);
-            $query->where(function ($q) use ($kw, $isTicket) {
-                if ($isTicket) {
-                    $q->where('nomor_tiket', strtoupper($kw));
-                } else {
-                    $q->where('nama', 'like', "%$kw%")
-                    ->orWhere('nomor_tiket', 'like', "%$kw%");
-                }
-            });
-        }
-
-        // 5. EKSEKUSI PENGAMBILAN DATA (Paling Akhir)
-        $pengaduans = $query->orderBy('created_at', 'desc')->paginate(10);
-
-        return view('pengaduan.index', compact('pengaduans', 'kanalList'));
     }
+
+    // ── Clone query untuk hitung badge masing-masing tab ─────────────
+    // (tidak dipengaruhi filter UI agar angka badge selalu akurat)
+    $countPengaduan  = (clone $baseQuery)->where('jenis_layanan', 'penanganan')->count();
+    $countInformasi  = (clone $baseQuery)->where('jenis_layanan', 'informasi')->count();
+
+    // ── Filter berdasarkan tab aktif ──────────────────────────────────
+    $query = (clone $baseQuery)->where('jenis_layanan', $activeTab === 'informasi' ? 'informasi' : 'penanganan');
+
+    // ── Filter STATUS (hanya relevan di tab pengaduan) ────────────────
+    $validStatus = ['pending', 'proses', 'diteruskan', 'ditolak', 'selesai'];
+    if ($activeTab === 'pengaduan' && $request->filled('status') && in_array($request->status, $validStatus)) {
+        $query->where('status', $request->status);
+    }
+
+    // ── Filter SEKSI ──────────────────────────────────────────────────
+    if ($request->filled('seksi')) {
+        $query->where('seksi_tujuan', $request->seksi);
+    }
+
+    // ── Filter KEYWORD ────────────────────────────────────────────────
+    if ($request->filled('keyword')) {
+        $kw       = trim($request->keyword);
+        $isTicket = preg_match('/^IMI-\d{8}-\d+$/i', $kw);
+        $query->where(function ($q) use ($kw, $isTicket) {
+            if ($isTicket) {
+                $q->where('nomor_tiket', strtoupper($kw));
+            } else {
+                $q->where('nama', 'like', "%$kw%")
+                  ->orWhere('nomor_tiket', 'like', "%$kw%");
+            }
+        });
+    }
+
+    // ── Eksekusi ──────────────────────────────────────────────────────
+    $pengaduans = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+
+    return view('pengaduan.index', compact(
+        'pengaduans',
+        'activeTab',
+        'countPengaduan',
+        'countInformasi',
+    ));
+}
     // ═══════════════════════════════════════════════════════════
     // STORE
     // ═══════════════════════════════════════════════════════════

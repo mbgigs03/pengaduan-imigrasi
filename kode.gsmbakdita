@@ -1,0 +1,80 @@
+/**
+ * SISTEM OTOMATISASI PENGADUAN - KANTOR IMIGRASI MADIUN
+ * Alur: Form -> Spreadsheet -> Folder Unik -> PDF & Lampiran
+ */
+
+function buatPDFdariForm(e) {
+  // === 1. KONFIGURASI ID (SESUAI LINK TERBARU) ===
+  const ID_TEMPLATE_DOC = '1ybIEnr-pMvbGkzMI1tswZ5b5gC7vVVqJL_puQ55MEBk';
+  const ID_FOLDER_INDUK = '1AU_9a285S8g_j1OUa7RXDEJxVSFxjJqlIiOp5n3QjQHpb0q8xokDm4Ht5ILn8P2mNQsiOt0y'; 
+  
+  try {
+    // === 2. AMBIL DATA DARI FORM (SESUAI STRUKTUR SPREADSHEET IMIGRASI) ===
+    const timestamp = e.values[0];
+    const tglPengaduan = e.namedValues['Tanggal Pengaduan'] ? e.namedValues['Tanggal Pengaduan'][0] : "-";
+    const namaPelapor = e.namedValues['Nama Lengkap Pelapor'] ? e.namedValues['Nama Lengkap Pelapor'][0] : "Tanpa Nama";
+    const jenisKelamin = e.namedValues['Jenis Kelamin'] ? e.namedValues['Jenis Kelamin'][0] : "-";
+    const alamat = e.namedValues['Alamat'] ? e.namedValues['Alamat'][0] : "-";
+    const noWA = e.namedValues['Nomor WhatsApp aktif'] ? e.namedValues['Nomor WhatsApp aktif'][0] : "-";
+    const sasaran = e.namedValues['Sasaran Pengaduan'] ? e.namedValues['Sasaran Pengaduan'][0] : "-";
+    const deskripsi = e.namedValues['Deskripsi Pengaduan'] ? e.namedValues['Deskripsi Pengaduan'][0] : "-";
+    
+    // Ambil data lampiran Bukti Pendukung
+    const buktiUpload = e.namedValues['Bukti Pendukung'];
+
+    // === 3. BUAT FOLDER KHUSUS UNTUK PELAPOR ===
+    const folderInduk = DriveApp.getFolderById(ID_FOLDER_INDUK);
+    const namaFolder = 'Arsip_Pengaduan_' + namaPelapor + '_' + tglPengaduan.replace(/[/]/g, '-');
+    const folderBaru = folderInduk.createFolder(namaFolder);
+
+    // === 4. PROSES PEMBUATAN PDF ===
+    const templateFile = DriveApp.getFileById(ID_TEMPLATE_DOC);
+    const fileSementara = templateFile.makeCopy('Draft_' + namaPelapor, folderBaru);
+    const doc = DocumentApp.openById(fileSementara.getId());
+    const body = doc.getBody();
+    
+    // Ganti Placeholder di Docs (Sesuai dengan tag << >> di Template Imigrasi Anda)
+    body.replaceText('<<Tanggal Pengaduan>>', tglPengaduan);
+    body.replaceText('<<Nama Lengkap Pelapor>>', namaPelapor);
+    body.replaceText('<<Jenis Kelamin>>', jenisKelamin);
+    body.replaceText('<<Alamat>>', alamat);
+    body.replaceText('<<Nomor WhatsApp Aktif>>', noWA);
+    body.replaceText('<<Sasaran Pengaduan>>', sasaran);
+    body.replaceText('<<Deskripsi Pengaduan>>', deskripsi);
+    
+    doc.saveAndClose();
+    
+    // Konversi ke PDF
+    const pdfBlob = fileSementara.getAs(MimeType.PDF);
+    pdfBlob.setName('Laporan_Pengaduan_' + namaPelapor + '.pdf');
+    folderBaru.createFile(pdfBlob);
+    
+    // Hapus draft Docs
+    fileSementara.setTrashed(true);
+
+    // === 5. PINDAHKAN BUKTI PENDUKUNG (SMART ID EXTRACTOR) ===
+    if (buktiUpload && buktiUpload[0] !== "") {
+      let links = buktiUpload[0].split(',');
+      
+      links.forEach(function(link) {
+        try {
+          // Mengambil ID file dari URL link Drive
+          const match = link.match(/[\w-]{25,}/);
+          if (match) {
+            const fileId = match[0];
+            const fileBukti = DriveApp.getFileById(fileId);
+            fileBukti.moveTo(folderBaru); 
+            console.log("Berhasil memindahkan lampiran: " + fileId);
+          }
+        } catch (err) {
+          console.log("Gagal memproses lampiran: " + err.toString());
+        }
+      });
+    }
+
+    console.log("Selesai! Arsip dibuat di: " + namaFolder);
+
+  } catch (err) {
+    console.log("Error Utama: " + err.toString());
+  }
+}

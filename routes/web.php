@@ -52,10 +52,10 @@ Route::middleware('auth')->group(function () {
     |----------------------------------------------------------------------
     */
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::middleware('auth')->group(function () {
-        Route::post('/tindak-lanjut', [TindakLanjutController::class, 'store'])
-            ->name('tindaklanjut.store');
-    });
+    // Route::middleware('auth')->group(function () {
+    //     Route::post('/tindak-lanjut', [TindakLanjutController::class, 'store'])
+    //         ->name('tindaklanjut.store');
+    // });
 
     Route::get('/pengaduan', [PengaduanController::class, 'index'])->name('pengaduan.index');
 
@@ -94,11 +94,15 @@ Route::middleware(['auth', 'role:tikkim,seksi'])->group(function () {
 
     // Route Resource untuk manajemen histori jika diperlukan (opsional)
     // Gunakan ini jika ingin mengedit atau menghapus poin histori tertentu saja
-    Route::prefix('tindak-lanjut')->name('tindak-lanjut.')->group(function() {
-        Route::post('/', [TindakLanjutController::class, 'store'])->name('store');
-        Route::put('/{tindakLanjut}', [TindakLanjutController::class, 'update'])->name('update');
-        Route::delete('/{tindakLanjut}', [TindakLanjutController::class, 'destroy'])->name('destroy');
-    });
+    // Tambahkan di dalam grup middleware auth
+    Route::post('/tindak-lanjut',              [TindakLanjutController::class, 'store'])
+        ->name('tindak-lanjut.store');
+
+    Route::patch('/tindak-lanjut/{tindakLanjut}', [TindakLanjutController::class, 'update'])
+        ->name('tindak-lanjut.update');
+
+    Route::delete('/tindak-lanjut/{tindakLanjut}', [TindakLanjutController::class, 'destroy'])
+        ->name('tindak-lanjut.destroy');
 
     Route::get('/pengaduan/{id}', [PengaduanController::class, 'show'])
         ->name('pengaduan.show');

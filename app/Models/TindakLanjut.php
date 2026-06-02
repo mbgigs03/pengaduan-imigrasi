@@ -10,7 +10,7 @@ class TindakLanjut extends Model
         'pengaduan_id',
         'catatan_petugas',
         'tanggal_selesai',
-        'petugas_id',       // FK ke users (opsional, perlu kolom di migrasi)
+        'petugas_id',
         'bukti_gambar',
     ];
 
@@ -19,16 +19,15 @@ class TindakLanjut extends Model
     ];
 
     /**
-     * Relasi ke Pengaduan induk
+     * Relasi ke Pengaduan induk (belongsTo → singular)
      */
-    public function pengaduans()
+    public function pengaduan()
     {
         return $this->belongsTo(Pengaduan::class, 'pengaduan_id');
     }
 
     /**
      * Relasi ke User petugas yang menginput
-     * (aktifkan jika sudah tambah kolom petugas_id)
      */
     public function petugas()
     {

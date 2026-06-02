@@ -11,127 +11,155 @@ use Illuminate\Support\Facades\Storage;
 
 class TindakLanjutController extends Controller
 {
-    /**
-     * SIMPAN TINDAK LANJUT BARU
-     * Dipanggil dari modal di dashboard Seksi / TIKKIM
-     * POST /tindak-lanjut
-     *
-     * Satu pengaduan hanya boleh punya satu tindak lanjut aktif (updateOrCreate).
-     * Status pengaduan ikut berubah sesuai pilihan petugas.
-     */
-    public function store(Request $request)
+    // ─── Konstanta status yang valid ───────────────────────────────────────────
+    private const VALID_STATUS = ['proses', 'diteruskan', 'ditolak', 'selesai'];
+
+    // ─── Aturan validasi yang dipakai di store() maupun update() ───────────────
+    private function validationRules(bool $requireBukti = false): array
     {
-        $request->validate([
-            'pengaduan_id'    => 'required|exists:pengaduans,id',
-            'status_baru'     => 'required|in:proses,diteruskan,selesai',
-            'catatan_petugas' => 'required|string|max:2000',
-            'bukti_gambar'    => 'nullable|image|mimes:jpg,jpeg,png|max:10240', // 🔥 TAMBAH INI
-        ], [
-            'catatan_petugas.required' => 'Catatan tindak lanjut wajib diisi.',
-        ]);
+        return [
+            // ✅ SINKRON: name="status_baru" di form Blade
+            'status_baru'     => ['required', 'in:' . implode(',', self::VALID_STATUS)],
 
-        $pengaduan = Pengaduan::findOrFail($request->pengaduan_id);
+            // ✅ SINKRON: name="catatan_petugas" di form Blade
+            'catatan_petugas' => ['required', 'string', 'max:2000'],
 
-        // Otorisasi: Seksi hanya boleh update aduan milik seksinya
+            // Foto bukti wajib jika status selesai ditangani di level JS/UX,
+            // di sini tetap opsional agar fleksibel
+            'bukti_gambar'    => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+        ];
+    }
+
+    private function validationMessages(): array
+    {
+        return [
+            'status_baru.required'      => 'Pilih status tindak lanjut.',
+            'status_baru.in'            => 'Nilai status tidak valid.',
+            'catatan_petugas.required'  => 'Catatan tindak lanjut wajib diisi.',
+            'catatan_petugas.max'       => 'Catatan maksimal 2.000 karakter.',
+            'bukti_gambar.image'        => 'File harus berupa gambar.',
+            'bukti_gambar.max'          => 'Ukuran foto maksimal 10 MB.',
+        ];
+    }
+
+    // ─── Helper: otorisasi seksi ────────────────────────────────────────────────
+    private function authorizeAkses(Pengaduan $pengaduan): void
+    {
         $user = Auth::user();
         if ($user->profile->role === 'seksi') {
             abort_if(
                 $pengaduan->seksi_tujuan !== $user->profile->seksi,
-                403, 'Anda tidak berwenang menangani aduan ini.'
+                403,
+                'Anda tidak berwenang menangani aduan ini.'
             );
         }
+    }
 
-        $buktiPath = null;
-
-        if ($request->hasFile('bukti_gambar')) {
-            $file = $request->file('bukti_gambar');
-        
-            $filename = 'bukti-tindak-lanjut.' . $file->getClientOriginalExtension();
-
-            $path = Storage::disk('supabase')->putFileAs(
-                "pengaduan/{$pengaduan->nomor_tiket}",
-                $file,
-                $filename
-            );
-        
-            $buktiPath = Storage::disk('supabase')->url($path);
+    // ─── Helper: upload bukti gambar ───────────────────────────────────────────
+    private function uploadBukti(Request $request, Pengaduan $pengaduan): ?string
+    {
+        if (! $request->hasFile('bukti_gambar')) {
+            return null;
         }
 
-        $tanggalSelesai = $request->status_baru === 'selesai' ? Carbon::now() : null;
+        $file     = $request->file('bukti_gambar');
+        $filename = 'bukti-tindak-lanjut.' . $file->getClientOriginalExtension();
+        $path     = Storage::disk('supabase')->putFileAs(
+            "pengaduan/{$pengaduan->nomor_tiket}",
+            $file,
+            $filename
+        );
 
-        // Simpan / update tindak lanjut (satu record per pengaduan)
+        return Storage::disk('supabase')->url($path);
+    }
+
+    // ───────────────────────────────────────────────────────────────────────────
+    // STORE — Buat tindak lanjut baru (atau update jika sudah ada via updateOrCreate)
+    // POST /tindak-lanjut
+    // ───────────────────────────────────────────────────────────────────────────
+    public function store(Request $request)
+    {
+        $data = $request->validate(
+            array_merge(['pengaduan_id' => 'required|exists:pengaduans,id'], $this->validationRules()),
+            $this->validationMessages()
+        );
+
+        $pengaduan = Pengaduan::findOrFail($data['pengaduan_id']);
+        $this->authorizeAkses($pengaduan);
+
+        $buktiPath      = $this->uploadBukti($request, $pengaduan);
+        $tanggalSelesai = $data['status_baru'] === 'selesai' ? Carbon::now() : null;
+        $user           = Auth::user();
+
+        // ✅ One-to-One: satu pengaduan → satu TindakLanjut
         TindakLanjut::updateOrCreate(
             ['pengaduan_id' => $pengaduan->id],
             [
-                'catatan_petugas' => $request->catatan_petugas,
+                'catatan_petugas' => $data['catatan_petugas'],
                 'tanggal_selesai' => $tanggalSelesai,
-                'petugas_id'      => $user->id,  // opsional, lihat catatan migrasi di bawah
-                'bukti_gambar'    => $buktiPath,
+                'petugas_id'      => $user->id,
+                // Hanya timpa foto jika ada unggahan baru
+                ...($buktiPath ? ['bukti_gambar' => $buktiPath] : []),
             ]
         );
 
-        // Update status & keterangan di tabel pengaduans
         $pengaduan->update([
-            'status'           => $request->status_baru,
-            'keterangan_admin' => $request->catatan_petugas,
+            'status'           => $data['status_baru'],
+            'keterangan_admin' => $data['catatan_petugas'],
             'updated_by'       => $user->id,
         ]);
 
-        return back()->with('success', "Tindak lanjut untuk tiket {$pengaduan->nomor_tiket} berhasil disimpan.");
+        return back()->with('success', "Tindak lanjut tiket {$pengaduan->nomor_tiket} berhasil disimpan.");
     }
 
-    /**
-     * UPDATE TINDAK LANJUT YANG SUDAH ADA
-     * Dipakai jika petugas ingin merevisi catatan sebelumnya
-     * PUT /tindak-lanjut/{tindakLanjut}
-     */
+    // ───────────────────────────────────────────────────────────────────────────
+    // UPDATE — Revisi tindak lanjut yang sudah ada
+    // PATCH /tindak-lanjut/{tindakLanjut}
+    // ───────────────────────────────────────────────────────────────────────────
     public function update(Request $request, TindakLanjut $tindakLanjut)
     {
-        $request->validate([
-            'status_baru'     => 'required|in:proses,diteruskan,selesai',
-            'catatan_petugas' => 'required|string|max:2000',
-        ]);
+        $data = $request->validate(
+            $this->validationRules(),
+            $this->validationMessages()
+        );
 
         $user      = Auth::user();
-        $pengaduan = $tindakLanjut->pengaduans;
+        // ✅ PERBAIKAN: nama relasi singular ->pengaduan() bukan ->pengaduans()
+        $pengaduan = $tindakLanjut->pengaduan;
 
-        // Otorisasi
-        if ($user->profile->role === 'seksi') {
-            abort_if($pengaduan->seksi_tujuan !== $user->profile->seksi, 403);
-        }
+        $this->authorizeAkses($pengaduan);
+
+        $buktiPath = $this->uploadBukti($request, $pengaduan);
 
         $tindakLanjut->update([
-            'catatan_petugas' => $request->catatan_petugas,
-            'tanggal_selesai' => $request->status_baru === 'selesai' ? Carbon::now() : null,
+            'catatan_petugas' => $data['catatan_petugas'],
+            'tanggal_selesai' => $data['status_baru'] === 'selesai' ? Carbon::now() : null,
+            'petugas_id'      => $user->id,
+            ...($buktiPath ? ['bukti_gambar' => $buktiPath] : []),
         ]);
 
         $pengaduan->update([
-            'status'           => $request->status_baru,
-            'keterangan_admin' => $request->catatan_petugas,
+            'status'           => $data['status_baru'],
+            'keterangan_admin' => $data['catatan_petugas'],
             'updated_by'       => $user->id,
         ]);
 
         return back()->with('success', 'Tindak lanjut berhasil diperbarui.');
     }
 
-    /**
-     * HAPUS TINDAK LANJUT
-     * Mengembalikan status pengaduan ke 'pending'
-     * DELETE /tindak-lanjut/{tindakLanjut}
-     */
+    // ───────────────────────────────────────────────────────────────────────────
+    // DESTROY — Hapus tindak lanjut, kembalikan status ke pending
+    // DELETE /tindak-lanjut/{tindakLanjut}
+    // ───────────────────────────────────────────────────────────────────────────
     public function destroy(TindakLanjut $tindakLanjut)
     {
-        $pengaduan = $tindakLanjut->pengaduans;
+        $user      = Auth::user();
+        $pengaduan = $tindakLanjut->pengaduan; // ✅ relasi singular
 
-        // Otorisasi
-        $user = Auth::user();
-        if ($user->profile->role === 'seksi') {
-            abort_if($pengaduan->seksi_tujuan !== $user->profile->seksi, 403);
-        }
+        $this->authorizeAkses($pengaduan);
 
         $tindakLanjut->delete();
 
-        // Kembalikan status ke pending
         $pengaduan->update([
             'status'           => 'pending',
             'keterangan_admin' => null,

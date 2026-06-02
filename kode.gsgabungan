@@ -1,0 +1,205 @@
+/**
+ * SISTEM OTOMATISASI PENGADUAN - KANTOR IMIGRASI MADIUN
+ * Alur: Form -> Spreadsheet -> Folder Unik -> PDF & Lampiran -> Laravel API (Supabase)
+ */
+
+// ─── Configuration ────────────────────────────────────────────────────────────
+
+/** Full URL of your Laravel API endpoint, including /api prefix. */
+const WEBHOOK_URL = 'https://your-laravel-app.com/api/webhooks/gform';
+
+/**
+ * Must match APP_WEBHOOK_SECRET in your Laravel .env.
+ * Store this in Script Properties for production:
+ * File → Project properties → Script properties → add WEBHOOK_SECRET
+ * Then replace the literal below with:
+ * PropertiesService.getScriptProperties().getProperty('WEBHOOK_SECRET')
+ */
+const WEBHOOK_SECRET = 'REPLACE_WITH_YOUR_STRONG_SECRET_TOKEN';
+
+// ─── Main Handler ─────────────────────────────────────────────────────────────
+
+/**
+ * Triggered on every Google Form submission.
+ * Menggabungkan pembuatan arsip lokal di Google Drive dan sinkronisasi database via Webhook.
+ *
+ * @param {GoogleAppsScript.Events.SheetsOnFormSubmit} e
+ */
+function onFormSubmit(e) {
+  // === 1. KONFIGURASI ID (SESUAI LINK TERBARU) ===
+  const ID_TEMPLATE_DOC = '1ybIEnr-pMvbGkzMI1tswZ5b5gC7vVVqJL_puQ55MEBk';
+  const ID_FOLDER_INDUK = '1AU_9a285S8g_j1OUa7RXDEJxVSFxjJqlIiOp5n3QjQHpb0q8xokDm4Ht5ILn8P2mNQsiOt0y'; 
+  
+  try {
+    if (!e) {
+      throw new Error("Event object 'e' kosong. Pastikan fungsi dijalankan melalui Trigger Form Submit.");
+    }
+
+    // === 2. AMBIL DATA DARI FORM (SESUAI STRUKTUR SPREADSHEET IMIGRASI) ===
+    const timestamp = e.values ? e.values[0] : "-";
+    const tglPengaduan = e.namedValues['Tanggal Pengaduan'] ? e.namedValues['Tanggal Pengaduan'][0] : "-";
+    const namaPelapor = e.namedValues['Nama Lengkap Pelapor'] ? e.namedValues['Nama Lengkap Pelapor'][0] : "Tanpa Nama";
+    const jenisKelamin = e.namedValues['Jenis Kelamin'] ? e.namedValues['Jenis Kelamin'][0] : "-";
+    const alamat = e.namedValues['Alamat'] ? e.namedValues['Alamat'][0] : "-";
+    const noWA = e.namedValues['Nomor WhatsApp aktif'] ? e.namedValues['Nomor WhatsApp aktif'][0] : "-";
+    const sasaran = e.namedValues['Sasaran Pengaduan'] ? e.namedValues['Sasaran Pengaduan'][0] : "-";
+    const deskripsi = e.namedValues['Deskripsi Pengaduan'] ? e.namedValues['Deskripsi Pengaduan'][0] : "-";
+    
+    // Ambil data lampiran Bukti Pendukung
+    const buktiUpload = e.namedValues['Bukti Pendukung'];
+
+    // Variabel penampung URL file PDF eksternal untuk dikirim ke Laravel
+    let urlPdfHasil = "";
+
+    // === 3. BUAT FOLDER KHUSUS UNTUK PELAPOR ===
+    const folderInduk = DriveApp.getFolderById(ID_FOLDER_INDUK);
+    const namaFolder = 'Arsip_Pengaduan_' + namaPelapor + '_' + tglPengaduan.replace(/[/]/g, '-');
+    const folderBaru = folderInduk.createFolder(namaFolder);
+
+    // === 4. PROSES PEMBUATAN PDF ===
+    const templateFile = DriveApp.getFileById(ID_TEMPLATE_DOC);
+    const fileSementara = templateFile.makeCopy('Draft_' + namaPelapor, folderBaru);
+    const doc = DocumentApp.openById(fileSementara.getId());
+    const body = doc.getBody();
+    
+    // Ganti Placeholder di Docs (Sesuai dengan tag << >> di Template Imigrasi Anda)
+    body.replaceText('<<Tanggal Pengaduan>>', tglPengaduan);
+    body.replaceText('<<Nama Lengkap Pelapor>>', namaPelapor);
+    body.replaceText('<<Jenis Kelamin>>', jenisKelamin);
+    body.replaceText('<<Alamat>>', alamat);
+    body.replaceText('<<Nomor WhatsApp Aktif>>', noWA);
+    body.replaceText('<<Sasaran Pengaduan>>', sasaran);
+    body.replaceText('<<Deskripsi Pengaduan>>', deskripsi);
+    
+    doc.saveAndClose();
+    
+    // Konversi ke PDF
+    const pdfBlob = fileSementara.getAs(MimeType.PDF);
+    pdfBlob.setName('Laporan_Pengaduan_' + namaPelapor + '.pdf');
+    const filePdfBaru = folderBaru.createFile(pdfBlob);
+    
+    // Ambil link URL dari PDF hasil generate untuk kebutuhan data Laravel/Supabase
+    urlPdfHasil = filePdfBaru.getUrl();
+    
+    // Hapus draft Docs
+    fileSementara.setTrashed(true);
+
+    // === 5. PINDAHKAN BUKTI PENDUKUNG (SMART ID EXTRACTOR) ===
+    if (buktiUpload && buktiUpload[0] !== "") {
+      let links = buktiUpload[0].split(',');
+      
+      links.forEach(function(link) {
+        try {
+          // Mengambil ID file dari URL link Drive
+          const match = link.match(/[\w-]{25,}/);
+          if (match) {
+            const fileId = match[0];
+            const fileBukti = DriveApp.getFileById(fileId);
+            fileBukti.moveTo(folderBaru); 
+            console.log("Berhasil memindahkan lampiran: " + fileId);
+          }
+        } catch (err) {
+          console.log("Gagal memproses lampiran: " + err.toString());
+        }
+      });
+    }
+
+    console.log("Selesai! Arsip dibuat di: " + namaFolder);
+
+    // === 6. PROSES WEBHOOK KE LARAVEL API & SUPABASE ===
+    console.log("Mempersiapkan payload data transmisi...");
+    var payload = buildPayload(e.namedValues, timestamp, urlPdfHasil);
+    
+    console.log("Mengirim berkas data ke infrastruktur backend Laravel...");
+    sendWebhook(payload);
+
+  } catch (err) {
+    logError('onFormSubmit', err);
+  }
+}
+
+// ─── Payload Builder ──────────────────────────────────────────────────────────
+
+/**
+ * Maps e.namedValues (arrays of strings) to a flat JSON object.
+ * namedValues always returns arrays; we take index [0] for single-value columns.
+ *
+ * @param  {Object} namedValues    Raw e.namedValues from the form-submit event.
+ * @param  {string} timestampText  Raw timestamp header values[0].
+ * @param  {string} generatedPdfUrl Link file PDF yang diproduksi di Google Drive.
+ * @return {Object}                Clean payload object.
+ */
+function buildPayload(namedValues, timestampText, generatedPdfUrl) {
+  /**
+   * Safe getter — returns the first value for a named column, or an empty
+   * string when the column is absent or the respondent left it blank.
+   *
+   * @param  {string} key  Exact column header from the Google Form.
+   * @return {string}
+   */
+  function get(key) {
+    var values = namedValues[key];
+    if (!values || values.length === 0) return '';
+    return (values[0] || '').toString().trim();
+  }
+
+  return {
+    timestamp          : timestampText || get('Timestamp'),
+    tanggal_pengaduan  : get('Tanggal Pengaduan'),
+    nama_lengkap       : get('Nama Lengkap Pelapor'),
+    jenis_kelamin      : get('Jenis Kelamin'),
+    alamat             : get('Alamat'),
+    whatsapp           : get('Nomor WhatsApp aktif'),
+    sasaran_pengaduan  : get('Sasaran Pengaduan'),
+    deskripsi_pengaduan: get('Deskripsi Pengaduan'),
+    bukti_pendukung    : get('Bukti Pendukung'),
+    column_1           : generatedPdfUrl || get('Column 1'), // Memasukkan URL PDF Drive jika berhasil digenerate
+  };
+}
+
+// ─── HTTP Transport ───────────────────────────────────────────────────────────
+
+/**
+ * POSTs the payload as JSON to the Laravel webhook endpoint.
+ *
+ * @param  {Object} payload  The mapped form data.
+ * @throws {Error}           When the server returns a non-2xx status code.
+ */
+function sendWebhook(payload) {
+  var options = {
+    method             : 'post',
+    contentType        : 'application/json',
+    headers            : {
+      'Authorization'  : 'Bearer ' + WEBHOOK_SECRET,
+      'Accept'         : 'application/json',
+      'X-Source'       : 'GoogleAppsScript',
+    },
+    payload            : JSON.stringify(payload),
+    muteHttpExceptions : true,   // Prevents Apps Script from throwing on 4xx/5xx
+  };
+
+  var response   = UrlFetchApp.fetch(WEBHOOK_URL, options);
+  var statusCode = response.getResponseCode();
+  var body       = response.getContentText();
+
+  if (statusCode < 200 || statusCode > 299) {
+    throw new Error(
+      'Webhook failed — HTTP ' + statusCode + ' — Response: ' + body
+    );
+  }
+
+  Logger.log('Webhook success [' + statusCode + ']: ' + body);
+}
+
+// ─── Error Logging ────────────────────────────────────────────────────────────
+
+/**
+ * Logs structured error details to the Apps Script execution log.
+ * Extend this to send an email alert or write to a Sheets error log if needed.
+ *
+ * @param {string} context  The function name where the error occurred.
+ * @param {Error}  err      The caught error object.
+ */
+function logError(context, err) {
+  Logger.log('[ERROR] Context: ' + context + ' | Message: ' + err.message);
+}
