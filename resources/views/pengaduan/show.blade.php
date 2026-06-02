@@ -169,10 +169,10 @@
                                 {{ $i === 0 && count($allBukti) >= 3 ? 'row-span-2 col-span-1' : '' }}"
                             style="{{ $i === 0 && count($allBukti) >= 3 ? 'grid-row: span 2;' : '' }}">
         
-                        <img src="{{ $url }}"
-                            alt="Bukti {{ $i + 1 }}"
-                            loading="lazy"
-                            class="w-full h-full object-cover transition-transform duration-300
+                        <img src="{{ str_starts_with($url, 'http') ? $url : asset('storage/' . $url) }}"
+                             alt="Bukti {{ $i + 1 }}"
+                             loading="lazy"
+                             class="w-full h-full object-cover transition-transform duration-300
                                     group-hover:scale-105">
         
                         {{-- Overlay hover --}}
