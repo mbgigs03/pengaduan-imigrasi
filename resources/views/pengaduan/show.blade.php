@@ -137,64 +137,88 @@
         </div>
 
         {{-- ── BUKTI FOTO (jika ada) ───────────────────────────────── --}}
-        @php $allBukti = $pengaduan->all_bukti; @endphp
+        @php 
+            $rawBukti = $pengaduan->all_bukti ?? []; 
+
+            // 1. Ubah apapun formatnya (mau array dari Laravel atau string dari Supabase) jadi teks mentah
+            $stringMentah = is_array($rawBukti) ? json_encode($rawBukti) : $rawBukti;
+
+            // 2. Bersihkan karakter aneh (kurung siku, kutip, spasi, dan garis miring terbalik)
+            $bersih = str_replace(['[', ']', '"', "'", ' ', '\\'], '', $stringMentah);
+
+            // 3. [KUNCI RAHASIA] Pecah string berdasarkan tanda koma menjadi Array yang sesungguhnya!
+            $arrayAsli = explode(',', $bersih);
+
+            $processedBukti = [];
+
+            // 4. Kita loop satu-satu secara akurat
+            foreach($arrayAsli as $url) {
+                if (empty($url)) continue;
+
+                if (str_starts_with($url, 'http')) {
+                    // Bypass blokir gambar Google Drive
+                    if (str_contains($url, 'drive.google.com')) {
+                        preg_match('/[-\w]{25,}/', $url, $matches);
+                        if (isset($matches[0])) {
+                            $url = 'https://drive.google.com/thumbnail?id=' . $matches[0] . '&sz=w1000';
+                        }
+                    }
+                    $processedBukti[] = $url;
+                } else {
+                    $processedBukti[] = asset('storage/' . $url);
+                }
+            }
+        @endphp
  
-        @if (count($allBukti) > 0)
+        @if (count($processedBukti) > 0)
         <div class="bg-white rounded-[14px] border border-slate-100 p-5"
-            x-data="lightbox({{ json_encode($allBukti) }})">
-        
+             x-data="lightbox({{ json_encode($processedBukti) }})">
+         
             <div class="flex items-center justify-between mb-4">
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                     Bukti Lampiran
                 </p>
-                <span class="text-[11px] font-semibold text-slate-400 bg-slate-50 border border-slate-100
-                            px-2.5 py-1 rounded-full">
-                    {{ count($allBukti) }} foto
+                <span class="text-[11px] font-semibold text-slate-400 bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-full">
+                    {{ count($processedBukti) }} foto
                 </span>
             </div>
-        
+         
             {{-- ── Thumbnail Grid ───────────────────────────────── --}}
-            @php $cols = match(true) { count($allBukti) === 1 => 1, count($allBukti) === 2 => 2, default => 3 }; @endphp
-        
-            <div class="grid gap-2"
-                style="grid-template-columns: repeat({{ $cols }}, minmax(0, 1fr))">
-        
-                @foreach ($allBukti as $i => $url)
-                    @php $isExtra = $i >= 4 && count($allBukti) > 5; @endphp
-        
+            @php $cols = match(true) { count($processedBukti) === 1 => 1, count($processedBukti) === 2 => 2, default => 3 }; @endphp
+         
+            <div class="grid gap-2" style="grid-template-columns: repeat({{ $cols }}, minmax(0, 1fr))">
+         
+                @foreach ($processedBukti as $i => $finalUrl)
                     <button type="button"
                             @click="open({{ $i }})"
                             class="relative group aspect-square overflow-hidden rounded-xl bg-slate-100
                                 focus:outline-none focus:ring-2 focus:ring-blue-400
-                                {{ $i === 0 && count($allBukti) >= 3 ? 'row-span-2 col-span-1' : '' }}"
-                            style="{{ $i === 0 && count($allBukti) >= 3 ? 'grid-row: span 2;' : '' }}">
-        
-                        <img src="{{ str_starts_with($url, 'http') ? $url : asset('storage/' . $url) }}"
+                                {{ $i === 0 && count($processedBukti) >= 3 ? 'row-span-2 col-span-1' : '' }}"
+                            style="{{ $i === 0 && count($processedBukti) >= 3 ? 'grid-row: span 2;' : '' }}">
+         
+                        {{-- URL sudah bersih, tinggal dipanggil langsung --}}
+                        <img src="{{ $finalUrl }}"
                              alt="Bukti {{ $i + 1 }}"
                              loading="lazy"
-                             class="w-full h-full object-cover transition-transform duration-300
-                                    group-hover:scale-105">
-        
+                             class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+         
                         {{-- Overlay hover --}}
-                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200
-                                    flex items-center justify-center">
-                            <svg class="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow"
-                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
                             </svg>
                         </div>
-        
+         
                         {{-- Badge "+N" untuk foto ke-5 jika total > 5 --}}
-                        @if ($i === 4 && count($allBukti) > 5)
+                        @if ($i === 4 && count($processedBukti) > 5)
                             <div class="absolute inset-0 bg-black/55 flex items-center justify-center">
-                                <span class="text-white text-xl font-bold">+{{ count($allBukti) - 5 }}</span>
+                                <span class="text-white text-xl font-bold">+{{ count($processedBukti) - 5 }}</span>
                             </div>
                         @endif
                     </button>
                 @endforeach
             </div>
-        
+         
             {{-- ── Lightbox Overlay ─────────────────────────────── --}}
             <div x-show="visible"
                 x-transition:enter="transition ease-out duration-200"
@@ -208,49 +232,39 @@
                 @keydown.arrow-right.window="next()"
                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
                 style="display:none;">
-        
-                {{-- Backdrop klik untuk tutup --}}
+         
                 <div class="absolute inset-0" @click="close()"></div>
-        
-                {{-- Container gambar --}}
+         
                 <div class="relative z-10 flex flex-col items-center gap-3 max-w-4xl w-full">
-        
-                    {{-- Counter --}}
+         
                     <div class="text-white/60 text-xs font-medium tracking-widest uppercase">
                         <span x-text="current + 1"></span> / <span x-text="images.length"></span>
                     </div>
-        
-                    {{-- Gambar utama --}}
+         
                     <div class="relative w-full flex items-center justify-center">
                         <img :src="images[current]"
                             :alt="'Foto ' + (current + 1)"
                             class="max-h-[75vh] max-w-full rounded-xl object-contain shadow-2xl"
                             @click.stop>
-        
-                        {{-- Panah kiri --}}
+         
                         <button @click.stop="prev()"
                                 x-show="images.length > 1"
-                                class="absolute left-0 sm:-left-14 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25
-                                    text-white flex items-center justify-center transition backdrop-blur-sm">
+                                class="absolute left-0 sm:-left-14 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition backdrop-blur-sm">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                             </svg>
                         </button>
-        
-                        {{-- Panah kanan --}}
+         
                         <button @click.stop="next()"
                                 x-show="images.length > 1"
-                                class="absolute right-0 sm:-right-14 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25
-                                    text-white flex items-center justify-center transition backdrop-blur-sm">
+                                class="absolute right-0 sm:-right-14 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition backdrop-blur-sm">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                             </svg>
                         </button>
                     </div>
-        
-                    {{-- Strip thumbnail (hanya jika > 1 foto) --}}
-                    <div x-show="images.length > 1"
-                        class="flex gap-2 overflow-x-auto pb-1 max-w-full px-2">
+         
+                    <div x-show="images.length > 1" class="flex gap-2 overflow-x-auto pb-1 max-w-full px-2">
                         <template x-for="(img, i) in images" :key="i">
                             <button @click.stop="current = i"
                                     class="flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all"
@@ -260,55 +274,42 @@
                         </template>
                     </div>
                 </div>
-        
-                {{-- Tombol tutup --}}
-                <button @click="close()"
-                        class="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-white/10 hover:bg-white/25
-                            text-white flex items-center justify-center transition backdrop-blur-sm">
+         
+                <button @click="close()" class="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition backdrop-blur-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
-        
-                {{-- Download tombol --}}
-                <a :href="images[current]"
-                target="_blank"
-                @click.stop
-                class="absolute top-4 right-16 z-20 w-9 h-9 rounded-full bg-white/10 hover:bg-white/25
-                        text-white flex items-center justify-center transition backdrop-blur-sm"
-                title="Buka di tab baru">
+         
+                <a :href="images[current]" target="_blank" @click.stop
+                   class="absolute top-4 right-16 z-20 w-9 h-9 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition backdrop-blur-sm"
+                   title="Buka di tab baru">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4
-                                M14 4h6m0 0v6m0-6L10 14"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4 M14 4h6m0 0v6m0-6L10 14"/>
                     </svg>
                 </a>
             </div>
         </div>
-        
-        {{-- Alpine component — letakkan sebelum </body> atau di @push('scripts') --}}
+         
         <script>
         function lightbox(images) {
             return {
                 images,
                 visible: false,
                 current: 0,
-        
+         
                 open(index) {
                     this.current = index;
                     this.visible = true;
                     document.body.style.overflow = 'hidden';
                 },
-        
                 close() {
                     this.visible = false;
                     document.body.style.overflow = '';
                 },
-        
                 prev() {
                     this.current = (this.current - 1 + this.images.length) % this.images.length;
                 },
-        
                 next() {
                     this.current = (this.current + 1) % this.images.length;
                 }

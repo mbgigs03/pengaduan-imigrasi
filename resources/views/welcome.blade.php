@@ -76,7 +76,7 @@
                 </div>
                 <span class="font-bold text-slate-800 text-lg tracking-tight">RUMANGSA</span>
                 <span class="text-slate-300 text-sm">|</span>
-                <span class="text-slate-500 text-xs">Ruang Monitoring & Pengaduan Masyarakat</span>
+                <span class="text-slate-500 text-xs">Kantor Imigrasi Kelas II Non TPI Madiun.</span>
             </div>
             <div class="flex items-center gap-2">
                 @auth
@@ -100,15 +100,15 @@
         <div class="max-w-5xl mx-auto text-center relative z-10">
             <div class="fade-up fade-up-1 inline-flex items-center gap-2 badge-sla text-white/90 text-xs font-semibold px-4 py-1.5 rounded-full mb-6">
                 <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block"></span>
-                Sistem berjalan normal · SLA 3 hari kerja
+                Sistem berjalan normal · Waktu Penanganan Pengaduan 3 hari kerja
             </div>
             {{-- HERO UPDATE --}}
             <h1 class="fade-up fade-up-2 text-4xl md:text-6xl font-extrabold text-white leading-tight mb-4">
                 Aplikasi <span class="text-blue-200">RUMANGSA</span>
             </h1>
             <p class="fade-up fade-up-3 text-blue-100 text-lg max-w-2xl mx-auto leading-relaxed">
-                <strong>Ruang Manajemen Pengaduan dengan Integrasi Sistem Digital</strong><br>
-                Transformasi digital pengawasan pelayanan publik pada <br>Kantor Imigrasi Kelas II Non TPI Madiun.
+                <strong>"Ruang Manajemen Pengaduan dengan Integrasi Sistem Digital"</strong><br>
+                Transformasi Digital Peningkatan Kualitas Pelayanan<br>Kantor Imigrasi Kelas II Non TPI Madiun.
             </p>
         </div>
     </div>
@@ -126,10 +126,10 @@
                     </svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <div class="font-bold text-slate-800 text-lg mb-1">Buat Aduan Baru</div>
-                    <p class="text-slate-500 text-sm leading-relaxed">Sampaikan keluhan atau pertanyaan Anda. Tidak perlu login.</p>
+                    <div class="font-bold text-slate-800 text-lg mb-1">Buat Pengaduan Baru</div>
+                    <p class="text-slate-500 text-sm leading-relaxed">Sampaikan pengaduan atau pertanyaan anda.<br>Tidak perlu login.</p>
                     <div class="mt-3 inline-flex items-center gap-1 text-blue-600 text-sm font-semibold">
-                        Mulai sekarang
+                        Buat Pengaduan
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                     </div>
                 </div>
@@ -142,10 +142,10 @@
                     </svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <div class="font-bold text-slate-800 text-lg mb-1">Cek Status Aduan</div>
-                    <p class="text-slate-500 text-sm leading-relaxed">Pantau perkembangan aduan menggunakan nomor tiket Anda.</p>
+                    <div class="font-bold text-slate-800 text-lg mb-1">Cek Status Pengaduan</div>
+                    <p class="text-slate-500 text-sm leading-relaxed">Lihat perkembangan pengaduan menggunakan nomor tiket Anda.</p>
                     <div class="mt-3 inline-flex items-center gap-1 text-emerald-600 text-sm font-semibold">
-                        Lacak tiket
+                        Lihat Status Pengaduan
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                     </div>
                 </div>
@@ -228,9 +228,9 @@
                 <p class="text-[10px] text-slate-400 font-medium uppercase tracking-widest text-center md:text-left">
                     © {{ date('Y') }} Kantor Imigrasi Madiun · Proyek Perubahan RUMANGSA
                 </p>
-                <div class="flex items-center gap-4 grayscale opacity-60">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b1/Logo_Kemenkumham_RI.svg" class="h-6" alt="Kemenkumham">
-                    <img src="https://upload.wikimedia.org/wikipedia/id/3/3a/Logo_Imigrasi.png" class="h-6" alt="Imigrasi">
+                <div class="flex items-center gap-4">
+                    <img src="{{ asset('images/logo-imigrasi.png') }}" class="h-20" alt="KEMENIMIPAS">
+                    <img src="{{ asset('images/logo-png.png') }}" class="h-20" alt="IMIGRASI">
                 </div>
             </div>
         </div>
