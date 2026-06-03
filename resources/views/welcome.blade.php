@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    <!-- Untuk Browser Standar -->
+    <link rel="icon" type="image/png" href="{{ asset('images/logo-rumangsa.png') }}">
+
+    <!-- Untuk Ikon di Layar Utama iPhone/iPad -->
+    <link rel="apple-touch-icon" href="{{ asset('images/logo-rumangsa.png') }}">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Layanan Pengaduan — Kantor Imigrasi</title>
@@ -76,7 +81,7 @@
                 </div>
                 <span class="font-bold text-slate-800 text-lg tracking-tight">RUMANGSA</span>
                 <span class="text-slate-300 text-sm">|</span>
-                <span class="text-slate-500 text-xs">Kantor Imigrasi Kelas II Non TPI Madiun.</span>
+                <span class="text-slate-500 text-xs">Ruang Manajemen Pengaduan dengan Integrasi Sistem Digital</span>
             </div>
             <div class="flex items-center gap-2">
                 @auth
