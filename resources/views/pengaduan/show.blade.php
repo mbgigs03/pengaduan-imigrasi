@@ -325,9 +325,7 @@
                 <div class="flex items-center justify-between mb-4">
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tindak Lanjut</p>
                     <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                        </svg>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         Sudah Ditindaklanjuti
                     </span>
                 </div>
@@ -336,17 +334,30 @@
                     {{ $tl->catatan_petugas }}
                 </div>
 
+                {{-- 🟢 KODE FINAL: Menampilkan Foto Bukti --}}
+                @if ($tl->bukti_gambar)
+                    <div class="mt-4">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Lampiran Bukti</p>
+                        <div class="rounded-xl overflow-hidden border border-slate-200 inline-block shadow-sm">
+                            <img src="https://crgjblwavebvnvvdnzbk.supabase.co/storage/v1/object/public/pengaduan/{{ $tl->bukti_gambar }}" 
+                                alt="Bukti Tindak Lanjut" 
+                                class="max-w-xs h-auto cursor-pointer hover:opacity-90 transition"
+                                onclick="window.open(this.src, '_blank')"
+                                onerror="this.style.display='none'">
+                        </div>
+                    </div>
+                @endif
+
                 <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-400">
                     @if ($tl->updated_at)
                         <span>Diperbarui {{ \Carbon\Carbon::parse($tl->updated_at)->translatedFormat('d F Y, H:i')}}</span>
                     @endif
-                    {{-- Cari bagian ini di file Blade kamu dan ubah --}}
                     @if ($tl->petugas ?? null)
-                        {{-- Jika $tl->petugas adalah objek, panggil property 'name' --}}
-                        <span>| oleh <strong class="text-slate-600">{{ is_object($tl->petugas) ? $tl->petugas->name : (is_array($tl->petugas) ? $tl->petugas['name'] : $tl->petugas) }}</strong></span>
+                        <span>| oleh <strong class="text-slate-600">{{ is_object($tl->petugas) ? $tl->petugas->name : $tl->petugas }}</strong></span>
                     @endif
                 </div>
             </div>
+
         @else
             <div class="bg-white rounded-[14px] border border-dashed border-slate-200 p-5 flex items-center gap-4">
                 <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">

@@ -378,19 +378,16 @@
                                         "{!! nl2br(e($tl->catatan_petugas)) !!}"
                                     </div>
 
-                                    {{-- ✅ PERBAIKAN: kolom bukti_gambar + URL sudah full dari Supabase --}}
+                                    {{-- ✅ PERBAIKAN: Gunakan logic untuk menentukan apakah harus pakai Storage::disk atau URL langsung --}}
                                     @if($tl->bukti_gambar)
                                         <div class="mt-4 p-2 bg-white rounded-xl border border-slate-100 inline-block">
                                             <p class="text-[9px] font-black text-slate-400 uppercase mb-2 ml-1">
                                                 Lampiran Bukti:
                                             </p>
-                                            {{-- ✅ Langsung pakai URL Supabase, tidak perlu asset('storage/...') --}}
-                                            <a href="{{ $tl->bukti_gambar }}" target="_blank" class="block group/img">
-                                                <img src="{{ $tl->bukti_gambar }}"
-                                                     alt="Bukti tindak lanjut"
-                                                     class="h-32 w-auto rounded-lg object-cover
-                                                            hover:opacity-90 transition-opacity shadow-sm">
-                                            </a>
+                                            {{-- Kunci: Kita tambahkan base URL Supabase secara manual agar tidak tertukar route Laravel --}}
+                                            <img src="https://crgjblwavebvnvvdnzbk.supabase.co/storage/v1/object/public/pengaduan/{{ $tl->bukti_gambar }}"
+                                                alt="Bukti tindak lanjut"
+                                                class="h-32 w-auto rounded-lg object-cover shadow-sm">
                                         </div>
                                     @endif
                                 </div>

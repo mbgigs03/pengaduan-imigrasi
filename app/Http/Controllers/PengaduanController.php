@@ -669,10 +669,17 @@ class PengaduanController extends Controller
             ]);
 
             // 2. Handle Bukti Gambar (Jika ada)
-            $urlGambar = null;
             if ($request->hasFile('bukti_gambar')) {
-                $path = Storage::disk('supabase')->put("tanggapan/{$pengaduan->nomor_tiket}", $request->file('bukti_gambar'));
-                $urlGambar = "https://your-project.supabase.co/storage/v1/object/public/pengaduan/" . $path;
+                // Simpan ke folder 'pengaduan/[nomor_tiket]/bukti-tindak-lanjut.png'
+                // Gunakan putFileAs agar nama file konsisten
+                $path = $request->file('bukti_gambar')->storeAs(
+                    "pengaduan/{$pengaduan->nomor_tiket}", 
+                    'bukti-tindak-lanjut.' . $request->file('bukti_gambar')->getClientOriginalExtension(), 
+                    'supabase'
+                );
+                
+                // Simpan HANYA path-nya (string relatif) ke database
+                $urlGambar = $path; 
             }
 
             // 3. Mapping Label untuk Timeline

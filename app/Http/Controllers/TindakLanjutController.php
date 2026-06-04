@@ -58,19 +58,17 @@ class TindakLanjutController extends Controller
     // ─── Helper: upload bukti gambar ───────────────────────────────────────────
     private function uploadBukti(Request $request, Pengaduan $pengaduan): ?string
     {
-        if (! $request->hasFile('bukti_gambar')) {
-            return null;
-        }
+        if (! $request->hasFile('bukti_gambar')) return null;
 
-        $file     = $request->file('bukti_gambar');
-        $filename = 'bukti-tindak-lanjut.' . $file->getClientOriginalExtension();
-        $path     = Storage::disk('supabase')->putFileAs(
-            "pengaduan/{$pengaduan->nomor_tiket}",
-            $file,
-            $filename
+        $file = $request->file('bukti_gambar');
+        // Simpan ke disk 'supabase' (pastikan config filesystem.php sudah benar)
+        $path = $file->storeAs(
+            "pengaduan/{$pengaduan->nomor_tiket}", 
+            'bukti-tindak-lanjut.' . $file->getClientOriginalExtension(), 
+            'supabase'
         );
 
-        return Storage::disk('supabase')->url($path);
+        return $path; // Hasil: "pengaduan/IMI-2026.../bukti-tindak-lanjut.png"
     }
 
     // ───────────────────────────────────────────────────────────────────────────
