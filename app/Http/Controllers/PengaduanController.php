@@ -37,6 +37,40 @@ class PengaduanController extends Controller
         }
     }
 
+    // 🟢 TAMBAHAN BARU: FILTER PERIODE (Checklist 13) ───────────────
+    $periode = $request->get('periode');
+
+    if ($periode) {
+        $now = \Carbon\Carbon::now();
+        switch ($periode) {
+            case 'daily':
+                $baseQuery->whereDate('tgl_pengaduan', $now->toDateString());
+                break;
+            case 'weekly':
+                $baseQuery->whereBetween('tgl_pengaduan', [$now->copy()->subDays(7)->startOfDay(), $now->endOfDay()]);
+                break;
+            case 'monthly':
+                $baseQuery->whereMonth('tgl_pengaduan', $now->month)
+                          ->whereYear('tgl_pengaduan', $now->year);
+                break;
+            case 'yearly':
+                $baseQuery->whereYear('tgl_pengaduan', $now->year);
+                break;
+            case 'custom':
+                if ($request->filled('start_date') && $request->filled('end_date')) {
+                    $baseQuery->whereBetween('tgl_pengaduan', [
+                        $request->start_date . ' 00:00:00',
+                        $request->end_date . ' 23:59:59'
+                    ]);
+                } elseif ($request->filled('start_date')) {
+                    $baseQuery->where('tgl_pengaduan', '>=', $request->start_date . ' 00:00:00');
+                } elseif ($request->filled('end_date')) {
+                    $baseQuery->where('tgl_pengaduan', '<=', $request->end_date . ' 23:59:59');
+                }
+                break;
+        }
+    }
+
     // ── Clone query untuk hitung badge masing-masing tab ─────────────
     // (tidak dipengaruhi filter UI agar angka badge selalu akurat)
     $countPengaduan  = (clone $baseQuery)->where('jenis_layanan', 'penanganan')->count();
@@ -64,8 +98,9 @@ class PengaduanController extends Controller
             if ($isTicket) {
                 $q->where('nomor_tiket', strtoupper($kw));
             } else {
-                $q->where('nama', 'like', "%$kw%")
-                  ->orWhere('nomor_tiket', 'like', "%$kw%");
+                // Gunakan LOWER() agar pencarian kebal huruf besar/kecil (Universal untuk MySQL & PostgreSQL)
+                $q->whereRaw('LOWER(nama) LIKE ?', ['%' . strtolower($kw) . '%'])
+                  ->orWhereRaw('LOWER(nomor_tiket) LIKE ?', ['%' . strtolower($kw) . '%']);
             }
         });
     }
@@ -161,17 +196,15 @@ class PengaduanController extends Controller
             'faq_terjawab' => $isFaqTerjawab
         ]);
 
-        // ── 6. Generate PDF (HANYA jika bukan FAQ terjawab) ──
-        if (!$isFaqTerjawab) {
-            try {
-                $pdfPath = $this->generateAndUploadPdf($pengaduan);
-                Log::info('PDF berhasil diupload', ['tiket' => $pengaduan->nomor_tiket]);
-            } catch (\Throwable $e) {
-                Log::error('PDF gagal', [
-                    'tiket' => $pengaduan->nomor_tiket,
-                    'error' => $e->getMessage()
-                ]);
-            }
+        // ── 6. Generate PDF (Untuk semua jenis layanan) ──
+        try {
+            $pdfPath = $this->generateAndUploadPdf($pengaduan);
+            Log::info('PDF berhasil diupload', ['tiket' => $pengaduan->nomor_tiket]);
+        } catch (\Throwable $e) {
+            Log::error('PDF gagal', [
+                'tiket' => $pengaduan->nomor_tiket,
+                'error' => $e->getMessage()
+            ]);
         }
 
         // ── 7. Redirect Cerdas (Petugas vs Publik) ────────────────

@@ -120,7 +120,7 @@ Route::middleware(['auth', 'role:tikkim,seksi'])->group(function () {
         // Download PDF — redirect ke Supabase public URL
     Route::get(
         '/dashboard/pengaduan/{nomorTiket}/pdf',
-        [DashboardController::class, 'downloadPdf']
+        [PengaduanController::class, 'downloadPdf']
     )->name('dashboard.pengaduan.downloadPdf')
      ->where('nomorTiket', '[A-Z0-9\-]+');   // hanya huruf besar, angka, strip
  

@@ -103,49 +103,108 @@
             </div>
 
             {{-- ── FILTER FORM ──────────────────────────────────────── --}}
-            <form method="GET" action="{{ route('pengaduan.index') }}"
-                  class="flex flex-wrap items-center gap-2.5 px-5 py-3 bg-slate-50/70 border-b border-slate-100">
+            <div class="px-5 py-4 bg-slate-50 border-b border-slate-100" x-data="filterPanel()" x-init="init()">
+                <form method="GET" action="{{ route('pengaduan.index') }}">
+                    <input type="hidden" name="tab" value="{{ $activeTab }}">
 
-                {{-- Pertahankan tab aktif saat submit filter --}}
-                <input type="hidden" name="tab" value="{{ $activeTab }}">
+                    {{-- Baris 1: Preset Periode & Pencarian --}}
+                    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Periode</label>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach([
+                                    ['', 'Semua'],
+                                    ['daily', 'Hari Ini'],
+                                    ['weekly', '7 Hari Terakhir'],
+                                    ['monthly', 'Bulan Ini'],
+                                    ['custom', 'Rentang Khusus'],
+                                ] as [$val, $label])
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="periode" value="{{ $val }}"
+                                            x-model="periode"
+                                            class="sr-only"
+                                            {{ (request('periode') === $val || (!request('periode') && $val === '')) ? 'checked' : '' }}>
+                                        <span class="inline-block px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all"
+                                            :class="periode === '{{ $val }}' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'">
+                                            {{ $label }}
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
 
-                <input type="text" name="keyword" value="{{ request('keyword') }}"
-                       placeholder="Cari nama / nomor tiket…"
-                       class="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white w-52
-                              focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400
-                              placeholder:text-slate-400">
+                        <div class="w-full md:w-auto">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Pencarian</label>
+                            <div class="relative">
+                                <input type="text" name="keyword" value="{{ request('keyword') }}"
+                                    placeholder="Nama pemohon / nomor tiket..."
+                                    class="w-full md:w-64 pl-9 pr-3 py-2 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition">
+                                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
 
-                {{-- Dropdown status HANYA muncul di tab pengaduan --}}
-                @if($activeTab === 'pengaduan')
-                    <select name="status"
-                            class="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-600
-                                   focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400">
-                        <option value="">Semua Status</option>
-                        @foreach(\App\Helpers\StatusHelper::options() as $val => $lbl)
-                            <option value="{{ $val }}" {{ request('status') === $val ? 'selected' : '' }}>
-                                {{ $lbl }}
-                            </option>
-                        @endforeach
-                    </select>
-                @endif
+                    {{-- Baris 2: Rentang Kustom (Kondisional) --}}
+                    <div x-show="periode === 'custom'" x-cloak
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 -translate-y-2"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         class="mb-4 p-3 bg-blue-50/50 border border-blue-100 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Dari Tanggal</label>
+                            <input type="date" name="start_date" id="start_date" value="{{ request('start_date') }}" x-model="startDate" @change="validateDates()"
+                                class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Sampai Tanggal</label>
+                            <input type="date" name="end_date" id="end_date" value="{{ request('end_date') }}" x-model="endDate" @change="validateDates()" :min="startDate"
+                                class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                                :class="dateError ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : ''">
+                            <p x-show="dateError" class="text-red-500 text-[10px] mt-1 font-semibold" x-text="dateError"></p>
+                        </div>
+                    </div>
 
-                <select name="seksi"
-                        class="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-600
-                               focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400">
-                    <option value="">Semua Seksi</option>
-                    @foreach(['Tikkim','Doklanintalkim','Inteldakim','Tata Usaha'] as $s)
-                        <option value="{{ $s }}" {{ request('seksi') === $s ? 'selected' : '' }}>{{ $s }}</option>
-                    @endforeach
-                </select>
+                    {{-- Baris 3: Filter Kategori & Status --}}
+                    <div class="flex flex-col sm:flex-row items-end gap-3 border-t border-slate-200/60 pt-4">
+                        <div class="w-full sm:w-1/3">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Seksi / Kategori</label>
+                            <select name="seksi" class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100">
+                                <option value="">Semua Seksi</option>
+                                @foreach(['Tikkim','Doklanintalkim','Inteldakim','Tata Usaha'] as $s)
+                                    <option value="{{ $s }}" {{ request('seksi') === $s ? 'selected' : '' }}>{{ $s }}</option>
+                                @endforeach
+                            </select>
+                        </div>
 
-                <button type="submit"
-                        class="px-4 py-2 text-sm font-semibold rounded-xl transition text-white
-                               {{ $activeTab === 'informasi' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700' }}">
-                    Filter
-                </button>
-                <a href="{{ route('pengaduan.index', ['tab' => $activeTab]) }}"
-                   class="text-sm text-slate-400 hover:text-slate-600 transition">Reset</a>
-            </form>
+                        @if($activeTab === 'pengaduan')
+                        <div class="w-full sm:w-1/3">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Status Tiket</label>
+                            <select name="status" class="w-full text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100">
+                                <option value="">Semua Status</option>
+                                @foreach(\App\Helpers\StatusHelper::options() as $val => $lbl)
+                                    <option value="{{ $val }}" {{ request('status') === $val ? 'selected' : '' }}>{{ $lbl }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @endif
+
+                        <div class="w-full sm:w-auto sm:ml-auto flex gap-2">
+                            <a href="{{ route('pengaduan.index', ['tab' => $activeTab]) }}"
+                               class="flex-1 sm:flex-none px-4 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-lg hover:bg-slate-50 transition text-center">
+                                Reset
+                            </a>
+                            <button type="submit" :disabled="periode === 'custom' && !!dateError"
+                                    class="flex-1 sm:flex-none px-5 py-2 text-white text-sm font-bold rounded-lg shadow-sm transition flex items-center justify-center gap-2
+                                    {{ $activeTab === 'informasi' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700' }} disabled:opacity-50 disabled:cursor-not-allowed">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 010 2H4a1 1 0 01-1-1zM6 10h12M9 16h6"/></svg>
+                                Terapkan
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
 
             {{-- ══════════════════════════════════════════════════════ --}}
             {{-- TAB: PENANGANAN PENGADUAN                             --}}
@@ -312,91 +371,100 @@
                     <table class="w-full data-table">
                         <thead>
                             <tr>
-                                {{-- ✅ Kolom lebih sederhana: tanpa Status & Deadline & TL --}}
-                                @foreach(['Tiket','Nama / Seksi','Kanal','Topik / Aduan','Tanggal','Aksi'] as $h)
-                                    <th>{{ $h }}</th>
+                                @foreach(['Tiket','Nama / Seksi','Topik / Pertanyaan','Status','Deadline','Aksi'] as $h)
+                                    <th class="text-left">{{ $h }}</th>
                                 @endforeach
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($pengaduans as $p)
+                                @php
+                                    $isDitolak = $p->status === 'ditolak';
+                                    $isSelesai = $p->status === 'selesai';
+                                    $isClosed  = $isDitolak || $isSelesai;
+                                    $tlId      = optional($p->tindakLanjut)->id;
+                                    $isFaq     = $isSelesai && !$tlId; // Tiket selesai tanpa ada TL = Dijawab FAQ
+                                    $over      = !$isClosed && \Carbon\Carbon::now()->gt($p->deadline_tindak_lanjut);
+                                @endphp
                                 <tr class="border-b border-slate-100 hover:bg-slate-50">
-
                                     {{-- Tiket --}}
-                                    <td class="p-3 font-mono text-xs text-slate-500">
-                                        {{ $p->nomor_tiket }}
-                                    </td>
+                                    <td class="p-3 font-mono text-xs text-slate-500">{{ $p->nomor_tiket }}</td>
 
                                     {{-- Nama / Seksi --}}
                                     <td class="p-3">
                                         <div class="font-semibold text-slate-800 text-sm">{{ $p->nama }}</div>
-                                        <span class="text-[10px] font-medium text-slate-400 bg-slate-100
-                                                     px-1.5 py-0.5 rounded-md mt-1 inline-block">
-                                            {{ $p->seksi_tujuan }}
-                                        </span>
+                                        <div class="text-[10px] text-slate-400 mt-0.5">{{ $p->kanal_pengaduan }}</div>
                                     </td>
 
-                                    {{-- Kanal --}}
-                                    <td class="p-3 text-xs text-slate-500">{{ $p->kanal_pengaduan }}</td>
-
-                                    {{-- Topik / Preview Aduan --}}
+                                    {{-- Preview Topik / Aduan --}}
                                     <td class="p-3 max-w-[220px]">
                                         @php
-                                            // Ambil baris pertama jika ada prefix [Kategori FAQ: ...]
                                             $aduanLines = explode("\n", $p->aduan);
                                             $topikLine  = count($aduanLines) > 1 && str_starts_with($aduanLines[0], '[Kategori FAQ')
-                                                          ? trim($aduanLines[0], '[]')
-                                                          : null;
-                                            $preview    = $topikLine
-                                                          ? Str::limit(implode(' ', array_slice($aduanLines, 2)), 60)
-                                                          : Str::limit($p->aduan, 80);
+                                                          ? trim($aduanLines[0], '[]') : null;
+                                            $preview    = $topikLine ? Str::limit(implode(' ', array_slice($aduanLines, 2)), 50) : Str::limit($p->aduan, 60);
                                         @endphp
                                         @if($topikLine)
-                                            <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-md
-                                                         bg-emerald-50 text-emerald-700 border border-emerald-200 mb-1">
+                                            <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 mb-1">
                                                 {{ $topikLine }}
+                                            </span><br>
+                                        @else
+                                            <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 mb-1">
+                                                Pertanyaan Manual
                                             </span><br>
                                         @endif
                                         <span class="text-xs text-slate-500 leading-snug">{{ $preview }}</span>
                                     </td>
 
-                                    {{-- Tanggal (menggantikan Deadline) --}}
+                                    {{-- Status --}}
                                     <td class="p-3">
-                                        <div class="text-xs text-slate-600 font-medium">
-                                            {{ \Carbon\Carbon::parse($p->tgl_pengaduan)->format('d M Y') }}
-                                        </div>
-                                        <div class="text-[10px] text-slate-400">
-                                            {{ \Carbon\Carbon::parse($p->tgl_pengaduan)->diffForHumans() }}
-                                        </div>
-                                        {{-- Badge Selesai otomatis --}}
-                                        <span class="inline-flex items-center gap-1 text-[10px] font-bold
-                                                     text-emerald-700 mt-1">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                      stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                                            </svg>
-                                            Selesai (Otomatis)
+                                        <span class="badge {{ \App\Helpers\StatusHelper::badgeClass($p->status) }}">
+                                            {{ \App\Helpers\StatusHelper::label($p->status) }}
                                         </span>
                                     </td>
 
-                                    {{-- Aksi: hanya Detail & PDF, tanpa tombol TL --}}
+                                    {{-- Deadline --}}
+                                    <td class="p-3">
+                                        @if($isClosed)
+                                            <div class="text-xs font-bold {{ $isDitolak ? 'text-red-500' : 'text-emerald-600' }}">
+                                                {{ $isDitolak ? 'Ditolak' : 'Tuntas' }}
+                                            </div>
+                                            <div class="text-[10px] text-slate-400">
+                                                {{ $isDitolak ? 'Laporan tidak valid' : ($isFaq ? 'Dijawab Otomatis (FAQ)' : 'Telah ditindaklanjuti') }}
+                                            </div>
+                                        @else
+                                            <div class="text-xs {{ $over ? 'text-red-600 font-bold' : 'text-slate-500' }}">
+                                                {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->format('d M Y') }}
+                                            </div>
+                                            <div class="text-[10px] text-slate-400">
+                                                {{ \Carbon\Carbon::parse($p->deadline_tindak_lanjut)->diffForHumans() }}
+                                            </div>
+                                        @endif
+                                    </td>
+
+                                    {{-- Aksi --}}
                                     <td class="p-3">
                                         <div class="flex items-center gap-1.5">
-                                            <a href="{{ route('pengaduan.show', $p->id) }}"
-                                               class="text-xs px-2.5 py-1.5 rounded-lg font-semibold
-                                                      bg-indigo-50 text-indigo-700 border border-indigo-200
-                                                      hover:bg-indigo-100 transition whitespace-nowrap">
-                                                Detail
-                                            </a>
+                                            @if($isClosed)
+                                                <a href="{{ route('pengaduan.show', $p->id) }}" class="text-xs px-2.5 py-1.5 rounded-lg font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition whitespace-nowrap">Detail</a>
+                                                @if($isFaq)
+                                                    <span class="text-[11px] px-3 py-1.5 rounded-lg font-bold cursor-not-allowed bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                        <svg class="w-3.5 h-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> FAQ
+                                                    </span>
+                                                @endif
+                                            @else
+                                                <button onclick="openModalTL('{{ $p->id }}', '{{ $p->nomor_tiket }}', '{{ addslashes($p->nama) }}', '{{ $p->status }}', '{{ addslashes($p->keterangan_admin ?? '') }}', '{{ $tlId }}')"
+                                                        class="text-xs px-2.5 py-1.5 rounded-lg font-bold transition whitespace-nowrap {{ $tlId ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100' : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100' }}">
+                                                    {{ $tlId ? 'Edit TL' : 'Tindak Lanjut' }}
+                                                </button>
+                                            @endif
+
+                                            {{-- 🟢 TAMBAHAN: Tombol Download PDF --}}
                                             <a href="{{ route('dashboard.pengaduan.downloadPdf', $p->nomor_tiket) }}"
                                                title="Unduh PDF" target="_blank"
-                                               class="w-7 h-7 flex items-center justify-center rounded-lg
-                                                      border border-slate-200 text-slate-400
-                                                      hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition">
+                                               class="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition">
                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414
-                                                             A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414 A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                                                 </svg>
                                             </a>
                                         </div>
@@ -406,7 +474,7 @@
                                 <tr>
                                     <td colspan="6" class="py-14 text-center">
                                         <div class="flex flex-col items-center gap-2">
-                                            <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center">
+                                            <div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center">
                                                 <svg class="w-6 h-6 text-emerald-400" fill="none"
                                                      stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -435,5 +503,36 @@
 
     {{-- Modal TL hanya relevan untuk tab pengaduan, tapi tidak masalah selalu di-render --}}
     <x-modal-tindak-lanjut />
+
+    <script>
+    function filterPanel() {
+        return {
+            periode:   '{{ request("periode", "") }}',
+            startDate: '{{ request("start_date", "") }}',
+            endDate:   '{{ request("end_date", "") }}',
+            dateError: '',
+
+            init() {
+                this.validateDates();
+            },
+
+            validateDates() {
+                if (this.periode !== 'custom') {
+                    this.dateError = '';
+                    return;
+                }
+                if (this.startDate && this.endDate) {
+                    if (new Date(this.endDate) < new Date(this.startDate)) {
+                        this.dateError = 'Tanggal akhir tidak boleh mendahului tanggal awal.';
+                    } else {
+                        this.dateError = '';
+                    }
+                } else {
+                    this.dateError = '';
+                }
+            }
+        };
+    }
+    </script>
 
 </x-layouts.dashboard>

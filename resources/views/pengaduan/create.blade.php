@@ -90,33 +90,62 @@
                     <div class="space-y-5">
                         {{-- Jenis Layanan --}}
                         <div>
-                            <label class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2 block">Jenis Layanan <span class="text-red-500">*</span></label>
+                            <label class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2 block">
+                                Jenis Layanan <span class="text-red-500">*</span>
+                            </label>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                
+                                {{-- 🟢 OPSI 1: INFORMASI (Otomatis isi seksi = 'Tikkim' agar FAQ muncul nanti) --}}
                                 <label class="cursor-pointer">
-                                    <input type="radio" name="jenis_layanan" value="informasi" x-model="jenis" class="sr-only">
-                                    <div class="p-4 border-2 rounded-xl transition-all" :class="jenis === 'informasi' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-blue-300 bg-white'">
+                                    <input type="radio" name="jenis_layanan" value="informasi"
+                                           x-model="jenis" class="sr-only"
+                                           @change="seksi = 'Tikkim'; topik = ''; aduan = ''; currentTemplate = ''">
+                                    <div class="p-4 border-2 rounded-xl transition-all"
+                                         :class="jenis === 'informasi'
+                                             ? 'border-blue-500 bg-blue-50'
+                                             : 'border-slate-200 hover:border-blue-300 bg-white'">
                                         <div class="flex items-start gap-3">
-                                            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" :class="jenis === 'informasi' ? 'bg-blue-100' : 'bg-slate-100'">
-                                                <svg class="w-5 h-5" :class="jenis === 'informasi' ? 'text-blue-600' : 'text-slate-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                                                 :class="jenis === 'informasi' ? 'bg-blue-100' : 'bg-slate-100'">
+                                                <svg class="w-5 h-5" :class="jenis === 'informasi' ? 'text-blue-600' : 'text-slate-400'"
+                                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
                                             </div>
                                             <div>
-                                                <p class="font-bold text-sm" :class="jenis === 'informasi' ? 'text-blue-800' : 'text-slate-700'">Permintaan Informasi</p>
-                                                <p class="text-xs text-slate-500 mt-0.5">Pemohon butuh kejelasan prosedur atau data</p>
+                                                <p class="font-bold text-sm" :class="jenis === 'informasi' ? 'text-blue-800' : 'text-slate-700'">
+                                                    Permintaan Informasi
+                                                </p>
+                                                <p class="text-xs text-slate-500 mt-0.5">Butuh kejelasan prosedur atau data layanan imigrasi</p>
                                             </div>
                                         </div>
                                     </div>
                                 </label>
 
+                                {{-- 🟢 OPSI 2: PENGADUAN (Reset seksi agar user wajib milih) --}}
                                 <label class="cursor-pointer">
-                                    <input type="radio" name="jenis_layanan" value="penanganan" x-model="jenis" class="sr-only">
-                                    <div class="p-4 border-2 rounded-xl transition-all" :class="jenis === 'penanganan' ? 'border-amber-500 bg-amber-50' : 'border-slate-200 hover:border-amber-300 bg-white'">
+                                    <input type="radio" name="jenis_layanan" value="penanganan"
+                                           x-model="jenis" class="sr-only"
+                                           @change="seksi = ''; topik = ''; aduan = ''; currentTemplate = ''">
+                                    <div class="p-4 border-2 rounded-xl transition-all"
+                                         :class="jenis === 'penanganan'
+                                             ? 'border-amber-500 bg-amber-50'
+                                             : 'border-slate-200 hover:border-amber-300 bg-white'">
                                         <div class="flex items-start gap-3">
-                                            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" :class="jenis === 'penanganan' ? 'bg-amber-100' : 'bg-slate-100'">
-                                                <svg class="w-5 h-5" :class="jenis === 'penanganan' ? 'text-amber-600' : 'text-slate-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                                                 :class="jenis === 'penanganan' ? 'bg-amber-100' : 'bg-slate-100'">
+                                                <svg class="w-5 h-5" :class="jenis === 'penanganan' ? 'text-amber-600' : 'text-slate-400'"
+                                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                                </svg>
                                             </div>
                                             <div>
-                                                <p class="font-bold text-sm" :class="jenis === 'penanganan' ? 'text-amber-800' : 'text-slate-700'">Pengajuan Pengaduan</p>
-                                                <p class="text-xs text-slate-500 mt-0.5">Keluhan atau ketidakpuasan layanan</p>
+                                                <p class="font-bold text-sm" :class="jenis === 'penanganan' ? 'text-amber-800' : 'text-slate-700'">
+                                                    Pengajuan Pengaduan
+                                                </p>
+                                                <p class="text-xs text-slate-500 mt-0.5">Keluhan atau ketidakpuasan terhadap layanan</p>
                                             </div>
                                         </div>
                                     </div>
@@ -124,17 +153,22 @@
                             </div>
                         </div>
 
-                        {{-- Seksi Tujuan --}}
-                        <div>
-                            <label class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2 block">Kategori / Seksi Tujuan <span class="text-red-500">*</span></label>
-                            <select name="seksi_tujuan" x-model="seksi" class="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition" required>
+                        {{-- 🟢 SEKSI TUJUAN: Hanya MUNCUL JIKA pilih "Pengajuan Pengaduan" --}}
+                        <div x-show="jenis === 'penanganan'" x-transition x-cloak>
+                            <label class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2 block">
+                                Kategori / Seksi Tujuan <span class="text-red-500">*</span>
+                            </label>
+                            <select name="seksi_tujuan" x-model="seksi"
+                                    class="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50
+                                           focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"
+                                    :required="jenis === 'penanganan'">
                                 <option value="">— Pilih kategori —</option>
-                                <option value="Tikkim">Pelayanan Paspor (Tikkim)</option>
-                                <option value="Doklanintalkim">[WNI] Dokumen Perjalanan (Doklanintal)</option>
-                                <option value="Doklanintalkim">[WNA] Pelayanan Izin Tinggal (Doklanintal)</option>
-                                <option value="Inteldakim">[WNA] Pengawasan Orang Asing (Inteldak)</option>
-                                <option value="Inteldakim">Alur BAP (Inteldak)</option>
-                                <option value="Tata Usaha">Sarana Prasarana (Tata Usaha)</option>
+                                <option value="Tikkim">Pelayanan Paspor</option>
+                                <option value="Doklan_Paspor">Dokumen Perjalanan</option>
+                                <option value="Doklan_Izin">Pelayanan Izin Tinggal [WNA]</option>
+                                <option value="Intel_WNA">Pengawasan Orang Asing [WNA]</option>
+                                <option value="Intel_BAP">Alur BAP</option>
+                                <option value="Tata Usaha">Sarana Prasarana</option>
                             </select>
                         </div>
                     </div>
@@ -153,12 +187,20 @@
 
                         <div class="flex flex-col gap-1.5" x-show="jenis === 'informasi'" x-transition>
                             <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">NIK (16 Digit) <span class="text-red-500">*</span></label>
-                            <input name="nik" type="text" maxlength="16" x-model="nik" placeholder="3501xxxxxxxxxxxxxxx" class="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 font-mono focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition" :required="jenis === 'informasi'">
+                            <input name="nik" type="text" maxlength="16" x-model="nik" 
+                                   @input="nik = nik.replace(/[^0-9]/g, '')" 
+                                   placeholder="3501xxxxxxxxxxxxxxx" 
+                                   class="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 font-mono focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition" 
+                                   :required="jenis === 'informasi'">
                         </div>
 
                         <div class="flex flex-col gap-1.5">
                             <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">No. WhatsApp <span class="text-red-500">*</span></label>
-                            <input name="whatsapp" type="text" x-model="whatsapp" placeholder="08xxxxxxxxxx" class="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition" required>
+                            <input name="whatsapp" type="text" x-model="whatsapp" 
+                                   @input="whatsapp = whatsapp.replace(/[^0-9]/g, '')" 
+                                   placeholder="08xxxxxxxxxx" 
+                                   class="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition" 
+                                   required>
                         </div>
 
                         <div class="flex flex-col gap-1.5 md:col-span-2">
@@ -202,16 +244,51 @@
                             <p class="text-xs text-slate-500 mb-6" x-text="seksi === 'Tikkim' ? 'Pilih topik yang sesuai — jawaban akan terisi otomatis.' : 'Jelaskan pertanyaan secara detail.'"></p>
 
                             {{-- HANYA MUNCUL JIKA KATEGORI = TIKKIM (Paspor) --}}
-                            <div x-show="seksi === 'Tikkim'" class="flex flex-col gap-1.5 mb-4">
-                                <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">Topik</label>
-                                <select name="topik_faq" x-model="topik" @change="applyTemplate()" class="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition">
-                                    <option value="">— Pilih topik —</option>
-                                    {{-- LOOPING DATA FAQ DARI DATABASE --}}
+                            {{-- DESAIN FAQ MODERN (GRID CARDS) --}}
+                            <div x-show="seksi === 'Tikkim'" class="mb-5">
+                                <label class="text-xs font-bold text-slate-600 uppercase tracking-wide mb-3 block">Pilih Topik Informasi</label>
+                                
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                                    {{-- Loop FAQ --}}
                                     @foreach($faqs as $faq)
-                                        <option value="{{ $faq->topik }}">{{ $faq->topik }}</option>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="topik_faq" value="{{ $faq->topik }}" x-model="topik" @change="applyTemplate()" class="sr-only">
+                                        <div class="p-3.5 border-2 rounded-xl text-sm font-medium transition-all duration-200 flex items-center justify-between"
+                                             :class="topik === '{{ $faq->topik }}' ? 'border-blue-500 bg-blue-50 text-blue-800 shadow-sm' : 'border-slate-200 text-slate-600 hover:border-blue-300 hover:bg-slate-50'">
+                                            <span class="truncate pr-2">{{ $faq->topik }}</span>
+                                            <div class="w-4 h-4 rounded-full border-2 flex-shrink-0 transition-all flex items-center justify-center" :class="topik === '{{ $faq->topik }}' ? 'border-blue-500 bg-blue-500' : 'border-slate-300'">
+                                                <svg x-show="topik === '{{ $faq->topik }}'" class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                            </div>
+                                        </div>
+                                    </label>
                                     @endforeach
-                                    <option value="lainnya">Lainnya (isi manual)</option>
-                                </select>
+
+                                    {{-- Tombol Pertanyaan Manual --}}
+                                    <label class="cursor-pointer sm:col-span-2">
+                                        <input type="radio" name="topik_faq" value="lainnya" x-model="topik" @change="applyTemplate()" class="sr-only">
+                                        <div class="p-3.5 border-2 border-dashed rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2"
+                                             :class="topik === 'lainnya' ? 'border-amber-500 bg-amber-50 text-amber-800 shadow-sm' : 'border-slate-300 text-slate-500 hover:border-amber-400 hover:bg-amber-50/50'">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z"/></svg>
+                                            Tidak ada di daftar? Ketik pertanyaan manual
+                                        </div>
+                                    </label>
+                                </div>
+
+                                {{-- JAWABAN FAQ MUNCUL DI SINI --}}
+                                <div x-show="topik !== '' && topik !== 'lainnya'" 
+                                     x-transition:enter="transition ease-out duration-300"
+                                     x-transition:enter-start="opacity-0 -translate-y-2"
+                                     x-transition:enter-end="opacity-100 translate-y-0"
+                                     class="relative overflow-hidden bg-white border border-blue-100 shadow-sm rounded-2xl p-5 mb-2">
+                                    <div class="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <div class="w-6 h-6 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        </div>
+                                        <h4 class="font-extrabold text-slate-800 text-sm">Informasi Prosedur</h4>
+                                    </div>
+                                    <div class="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed custom-scroll max-h-[300px] overflow-y-auto pr-2" x-text="currentTemplate"></div>
+                                </div>
                             </div>
 
                             {{-- KOTAK PREVIEW TEMPLATE FAQ --}}

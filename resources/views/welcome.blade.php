@@ -367,7 +367,15 @@
                     </div>
                 </div>
 
-                <div class="mt-4 p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center gap-3">
+                <div class="mt-4 p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-start gap-3">
+                    <div class="text-amber-500 mt-0.5 flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <p class="text-[11px] text-amber-800 leading-tight text-left">
+                        <strong>Catatan Penting:</strong> Silakan cek status (tracking) penyelesaian aduan Anda melalui website ini menggunakan nomor tiket pengaduan di atas.
+                    </p>
+                </div>
+                <div class="mt-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center gap-3">
                     <div class="bg-emerald-500 text-white p-2 rounded-lg animate-bounce">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     </div>
