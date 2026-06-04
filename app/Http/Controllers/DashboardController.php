@@ -73,19 +73,29 @@ class DashboardController extends Controller
         $slaOver       = (int) $stats->sla_over;
         $slaHMinus1    = (int) $stats->sla_hminus1;
  
-        // ── Performa seksi: 1 query GROUP BY (bukan N+1 loop) ─
+        // ── Performa seksi: Menggunakan CASE WHEN di dalam Group By agar tidak Error 500 ─
         $performaSeksi = Pengaduan::selectRaw("
-            seksi_tujuan AS nama,
+            CASE 
+                WHEN seksi_tujuan IN ('Doklanintalkim', 'Doklan_Izin', 'Doklan_Paspor') THEN 'Doklanintalkim'
+                WHEN seksi_tujuan IN ('Inteldakim', 'Intel_WNA', 'Intel_BAP') THEN 'Inteldakim'
+                WHEN seksi_tujuan IN ('Tata Usaha', 'Sarana Prasarana') THEN 'Tata Usaha'
+                ELSE seksi_tujuan 
+            END AS nama,
             COUNT(*) AS total,
             SUM(CASE WHEN status='selesai'    THEN 1 ELSE 0 END) AS selesai,
             SUM(CASE WHEN status='proses'     THEN 1 ELSE 0 END) AS proses,
             SUM(CASE WHEN status='pending'    THEN 1 ELSE 0 END) AS pending,
             SUM(CASE WHEN status='diteruskan' THEN 1 ELSE 0 END) AS diteruskan,
-            -- 🟢 PERBAIKAN: SLA Over Per Seksi jangan hitung tiket Selesai
-            SUM(CASE WHEN status != 'selesai'
-                      AND deadline_tindak_lanjut < NOW() THEN 1 ELSE 0 END) AS sla_over
+            SUM(CASE WHEN status != 'selesai' AND deadline_tindak_lanjut < NOW() THEN 1 ELSE 0 END) AS sla_over
         ")
-        ->groupBy('seksi_tujuan')
+        ->groupBy(DB::raw("
+            CASE 
+                WHEN seksi_tujuan IN ('Doklanintalkim', 'Doklan_Izin', 'Doklan_Paspor') THEN 'Doklanintalkim'
+                WHEN seksi_tujuan IN ('Inteldakim', 'Intel_WNA', 'Intel_BAP') THEN 'Inteldakim'
+                WHEN seksi_tujuan IN ('Tata Usaha', 'Sarana Prasarana') THEN 'Tata Usaha'
+                ELSE seksi_tujuan 
+            END
+        "))
         ->having(DB::raw('COUNT(*)'), '>', 0)
         ->get()
         ->map(fn($s) => collect($s)->put(

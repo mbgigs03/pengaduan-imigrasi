@@ -87,7 +87,17 @@ class PengaduanController extends Controller
 
     // ── Filter SEKSI ──────────────────────────────────────────────────
     if ($request->filled('seksi')) {
-        $query->where('seksi_tujuan', $request->seksi);
+        $seksiFilter = $request->seksi;
+        
+        if ($seksiFilter === 'Doklanintalkim') {
+            $query->whereIn('seksi_tujuan', ['Doklanintalkim', 'Doklan_Paspor', 'Doklan_Izin']);
+        } elseif ($seksiFilter === 'Inteldakim') {
+            $query->whereIn('seksi_tujuan', ['Inteldakim', 'Intel_WNA', 'Intel_BAP']);
+        } elseif ($seksiFilter === 'Tata Usaha') {
+            $query->whereIn('seksi_tujuan', ['Tata Usaha', 'Sarana Prasarana']);
+        } else {
+            $query->where('seksi_tujuan', $seksiFilter);
+        }
     }
 
     // ── Filter KEYWORD ────────────────────────────────────────────────
@@ -689,9 +699,6 @@ class PengaduanController extends Controller
 
         return view('pengaduan.show', compact('pengaduan'));
     }
-
-    
-
      // ─────────────────────────────────────────────────────────
     // Helper: inject CSS styling ke HTML sebelum di-render DomPDF
     // ─────────────────────────────────────────────────────────
