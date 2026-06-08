@@ -649,57 +649,60 @@ class PengaduanController extends Controller
         return view('pengaduan.track-public', compact('pengaduan'));
     }
     public function updateStatus(Request $request)
-    {
-        // Pengaduan_id dikirim dari hidden input di modal
-        $pengaduan = Pengaduan::findOrFail($request->pengaduan_id);
+{
+    // Pengaduan_id dikirim dari hidden input di modal
+    $pengaduan = Pengaduan::findOrFail($request->pengaduan_id);
 
-        $request->validate([
-            'status'     => 'required|in:pending,proses,diteruskan,selesai',
-            'keterangan' => 'required|string|min:5',
-            'bukti_gambar' => 'nullable|image|max:2048'
+    // 🟢 PERBAIKAN 1: Validasi 'status_baru' dan tambahkan opsi 'ditolak'
+    $request->validate([
+        'status_baru'  => 'required|in:pending,proses,diteruskan,ditolak,selesai',
+        'catatan_petugas' => 'required|string|min:5', // Sesuaikan dengan name="catatan_petugas" di blade jika perlu
+        'bukti_gambar' => 'nullable|image|max:2048'
+    ]);
+
+    \DB::transaction(function () use ($request, $pengaduan) {
+        
+        $statusBaru = $request->status_baru;
+        $catatan = $request->catatan_petugas;
+
+        // 1. Update Tabel Utama
+        $pengaduan->update([
+            'status'           => $statusBaru,
+            'keterangan_admin' => $catatan,
+            'updated_by'       => Auth::id(),
         ]);
 
-        \DB::transaction(function () use ($request, $pengaduan) {
-            
-            // 1. Update Tabel Utama
-            $pengaduan->update([
-                'status'           => $request->status,
-                'keterangan_admin' => $request->keterangan,
-                'updated_by'       => Auth::id(),
-            ]);
+        // 2. Handle Bukti Gambar (Jika ada)
+        $urlGambar = null;
+        if ($request->hasFile('bukti_gambar')) {
+            $path = $request->file('bukti_gambar')->storeAs(
+                "pengaduan/{$pengaduan->nomor_tiket}", 
+                'bukti-tindak-lanjut.' . $request->file('bukti_gambar')->getClientOriginalExtension(), 
+                'supabase'
+            );
+            $urlGambar = $path; 
+        }
 
-            // 2. Handle Bukti Gambar (Jika ada)
-            if ($request->hasFile('bukti_gambar')) {
-                // Simpan ke folder 'pengaduan/[nomor_tiket]/bukti-tindak-lanjut.png'
-                // Gunakan putFileAs agar nama file konsisten
-                $path = $request->file('bukti_gambar')->storeAs(
-                    "pengaduan/{$pengaduan->nomor_tiket}", 
-                    'bukti-tindak-lanjut.' . $request->file('bukti_gambar')->getClientOriginalExtension(), 
-                    'supabase'
-                );
-                
-                // Simpan HANYA path-nya (string relatif) ke database
-                $urlGambar = $path; 
-            }
+        // 3. Mapping Label untuk Timeline
+        // 🟢 PERBAIKAN 2: Tambahkan map label untuk status 'ditolak'
+        $statusLabels = [
+            'proses'     => 'Sedang Ditindaklanjuti',
+            'diteruskan' => 'Disposisi Kasi',
+            'ditolak'    => 'Pengaduan Ditolak',
+            'selesai'    => 'Selesai'
+        ];
 
-            // 3. Mapping Label untuk Timeline
-            $statusLabels = [
-                'proses'     => 'Sedang Ditindaklanjuti',
-                'diteruskan' => 'Disposisi Kasi',
-                'selesai'    => 'Selesai'
-            ];
+        // 4. Simpan ke Histori (Timeline)
+        $pengaduan->tanggapans()->create([
+            'user_id' => Auth::id(),
+            'status'  => $statusLabels[$statusBaru] ?? $statusBaru,
+            'catatan' => $catatan,
+            'bukti_tanggapan' => $urlGambar,
+        ]);
+    });
 
-            // 4. Simpan ke Histori (Timeline)
-            $pengaduan->tanggapans()->create([
-                'user_id' => Auth::id(),
-                'status'  => $statusLabels[$request->status] ?? $request->status,
-                'catatan' => $request->keterangan,
-                'bukti_tanggapan' => $urlGambar, // Jika Anda menambah kolom ini di migration tanggapans
-            ]);
-        });
-
-        return back()->with('success', 'Progres pengaduan berhasil dicatat dalam histori.');
-    }
+    return back()->with('success', 'Progres pengaduan berhasil dicatat dalam histori.');
+}
     public function show($id)
     {
         $pengaduan = Pengaduan::with('tindakLanjut')->findOrFail($id);

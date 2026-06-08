@@ -5,7 +5,6 @@ namespace App\Repositories;
 use App\Models\Pengaduan;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Collection;
 
 /**
  * PengaduanRepository
@@ -19,17 +18,18 @@ class PengaduanRepository
     // ═══════════════════════════════════════════════════════════
     // CORE QUERY BUILDER
     // Satu method yang membangun query berdasarkan array filter.
-    // Dipakai oleh method paginate(), export(), dan summary().
+    // Dipakai oleh method paginate(), forExport(), dan summary().
     // ═══════════════════════════════════════════════════════════
 
     /**
      * @param  array{
-     *   periode?: string,        // 'daily'|'weekly'|'monthly'|'yearly'|'custom'
-     *   start_date?: string,     // Y-m-d
-     *   end_date?: string,       // Y-m-d
-     *   seksi?: string,          // nama seksi (untuk scope Seksi)
-     *   status?: string,
-     *   kanal?: string,
+     * periode?: string,        // 'daily'|'weekly'|'monthly'|'yearly'|'custom'
+     * start_date?: string,     // Y-m-d
+     * end_date?: string,       // Y-m-d
+     * seksi?: string,          // nama seksi tunggal
+     * seksi_group?: array,     // array nama sub-seksi (pembungkus grup seksi)
+     * status?: string,
+     * kanal?: string,
      * } $filters
      */
     public function buildQuery(array $filters): Builder
@@ -42,8 +42,10 @@ class PengaduanRepository
                 'keterangan_admin', 'pdf_url', 'created_at',
             ]);
 
-        // ── Filter scope seksi (wajib untuk role 'seksi') ─────
-        if (!empty($filters['seksi'])) {
+        // ── 🟢 PERBAIKAN UTAMA: Filter scope seksi (Mendukung Group Sub-Seksi) ──
+        if (!empty($filters['seksi_group']) && is_array($filters['seksi_group'])) {
+            $query->whereIn('seksi_tujuan', $filters['seksi_group']);
+        } elseif (!empty($filters['seksi'])) {
             $query->where('seksi_tujuan', $filters['seksi']);
         }
 
@@ -98,16 +100,16 @@ class PengaduanRepository
     }
 
     // ═══════════════════════════════════════════════════════════
-    // PAGINATED — untuk tampilan dashboard
+    // PAGINATED — untuk tampilan dashboard rekap halaman utama
     // ═══════════════════════════════════════════════════════════
     public function paginate(array $filters, int $perPage = 15)
     {
+        // Otomatis mewarisi query filter group sub-seksi yang benar
         return $this->buildQuery($filters)->paginate($perPage)->withQueryString();
     }
 
     // ═══════════════════════════════════════════════════════════
-    // EXPORT COLLECTION — untuk ekspor ke Excel/PDF
-    // Menggunakan lazy() + chunk agar RAM efisien pada dataset besar
+    // EXPORT COLLECTION — untuk ekspor ke Excel/PDF (Stream Chunk)
     // ═══════════════════════════════════════════════════════════
     public function forExport(array $filters): \Illuminate\Support\LazyCollection
     {
@@ -115,7 +117,7 @@ class PengaduanRepository
     }
 
     // ═══════════════════════════════════════════════════════════
-    // RINGKASAN STATISTIK — untuk sheet "Ringkasan" di Excel
+    // RINGKASAN STATISTIK — untuk sheet "Ringkasan" & Counter Badge Atas
     // ═══════════════════════════════════════════════════════════
     public function summary(array $filters): array
     {
@@ -126,15 +128,27 @@ class PengaduanRepository
             'pending'    => (clone $base)->where('status', 'pending')->count(),
             'proses'     => (clone $base)->where('status', 'proses')->count(),
             'diteruskan' => (clone $base)->where('status', 'diteruskan')->count(),
+            'ditolak'    => (clone $base)->where('status', 'ditolak')->count(), // 🟢 TAMBAHAN: Hitung status ditolak
+            'selmet'     => (clone $base)->where('status', 'selesai')->count(), // Alias penanda selesai
             'selesai'    => (clone $base)->where('status', 'selesai')->count(),
             'sla_over'   => (clone $base)->where('status', '!=', 'selesai')
+                                         ->where('status', '!=', 'ditolak')
                                          ->where('deadline_tindak_lanjut', '<', now())
                                          ->count(),
         ];
     }
 
     // ═══════════════════════════════════════════════════════════
-    // LABEL PERIODE — untuk judul ekspor
+    // ALL — Digunakan oleh export internal controller tertentu
+    // ═══════════════════════════════════════════════════════════
+    public function all(array $filters = [])
+    {
+        // Sekarang all() dialihkan langsung menggunakan core query agar seragam kinerjanya
+        return $this->buildQuery($filters)->get();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // LABEL PERIODE — untuk judul ekspor header dokumen
     // ═══════════════════════════════════════════════════════════
     public function periodeLabel(array $filters): string
     {
@@ -150,31 +164,5 @@ class PengaduanRepository
                          . ' s.d. ' . ($filters['end_date'] ?? '?'),
             default   => 'Semua Data',
         };
-    }
-    public function all(array $filters = [])
-    {
-        $query = Pengaduan::query();
-
-        // Filter berdasarkan Seksi
-        if (!empty($filters['seksi'])) {
-            $query->where('seksi_tujuan', $filters['seksi']);
-        }
-
-        // Filter berdasarkan Status
-        if (!empty($filters['status'])) {
-            $query->where('status', $filters['status']);
-        }
-
-        // Filter berdasarkan Kanal
-        if (!empty($filters['kanal'])) {
-            $query->where('kanal_pengaduan', $filters['kanal']);
-        }
-
-        // Filter Rentang Tanggal (Start & End Date)
-        if (!empty($filters['start_date']) && !empty($filters['end_date'])) {
-            $query->whereBetween('tgl_pengaduan', [$filters['start_date'], $filters['end_date']]);
-        }
-
-        return $query->orderBy('created_at', 'desc')->get();
     }
 }
