@@ -11,7 +11,16 @@ class Tanggapan extends Model
         'user_id',
         'status',
         'catatan',
+        'bukti_tanggapan', // ← pastikan ada
     ];
-    
-    //
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function pengaduan()
+    {
+        return $this->belongsTo(Pengaduan::class);
+    }
 }

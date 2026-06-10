@@ -16,38 +16,75 @@ use Dompdf\Options;
 
 class PengaduanController extends Controller
 {
+
     public function index(Request $request)
 {
-    $user      = Auth::user();
+    $user = Auth::user();
+    
+    // 🔥 PAKAI ACCESSOR (otomatis ambil dari profile)
+    $userRole = $user->role;   // 'tikkim', 'seksi', 'kakanim', 'admin', dll
+    $userSeksi = $user->seksi; // nama seksi dari profile
+    
+    // ✅ TIKKIM dan KAKANIM bisa melihat SEMUA pengaduan (tanpa filter seksi)
+    $isSuperUser = in_array($userRole, ['tikkim', 'kakanim', 'admin']);
+    
     // ✅ Ambil tab aktif dari query string, default ke 'pengaduan'
     $activeTab = in_array($request->get('tab'), ['pengaduan', 'informasi'])
                  ? $request->get('tab')
                  : 'pengaduan';
 
-    // ── Base query dengan scope keamanan role ─────────────────────────
+    // ── Base query ─────────────────────────────────────────
     $baseQuery = Pengaduan::query();
 
-    if ($user->role === 'admin') {
-        if ($user->seksi === 'Doklanintalkim') {
-            $baseQuery->whereIn('seksi_tujuan', ['Doklanintalkim', 'Doklan_Paspor', 'Doklan_Izin']);
-        } elseif ($user->seksi === 'Inteldakim') {
-            $baseQuery->whereIn('seksi_tujuan', ['Inteldakim', 'Intel_WNA', 'Intel_BAP']);
+    // ── Filter berdasarkan role (kecuali super user) ───────
+    if (!$isSuperUser && in_array($userRole, ['seksi'])) {
+        $seksiClean = strtolower(trim($userSeksi ?? ''));
+        
+        if ($seksiClean === 'doklanintalkim') {
+            // Grup Doklanintalkim mencakup beberapa sub-seksi
+            $baseQuery->whereIn('seksi_tujuan', [
+                'Doklanintalkim', 'doklanintalkim', 
+                'Doklan_Izin', 'doklan_izin',
+                'Doklan_Paspor', 'doklan_paspor'
+            ]);
+        } elseif ($seksiClean === 'inteldakim') {
+            // Grup Inteldakim mencakup beberapa sub-seksi
+            $baseQuery->whereIn('seksi_tujuan', [
+                'Inteldakim', 'inteldakim',
+                'Intel_WNA', 'intel_wna',
+                'Intel_BAP', 'intel_bap'
+            ]);
+        } elseif ($seksiClean === 'tatausaha' || $seksiClean === 'tata usaha') {
+            // Grup Tata Usaha
+            $baseQuery->whereIn('seksi_tujuan', [
+                'Tata Usaha', 'tata usaha',
+                'Sarana Prasarana', 'sarana prasarana'
+            ]);
         } else {
-            $baseQuery->where('seksi_tujuan', $user->seksi);
+            // Seksi biasa, hanya lihat pengaduan seksi sendiri
+            $baseQuery->where('seksi_tujuan', $userSeksi);
         }
     }
+    
+    // Jika user adalah pemohon (biasanya tidak akan akses index, tapi antisipasi)
+    if ($userRole === 'pemohon') {
+        $baseQuery->where('nik', $user->nik ?? '0'); // filter berdasarkan NIK
+    }
 
-    // 🟢 TAMBAHAN BARU: FILTER PERIODE (Checklist 13) ───────────────
+    // ── FILTER PERIODE ───────────────────────────────────
     $periode = $request->get('periode');
 
     if ($periode) {
-        $now = \Carbon\Carbon::now();
+        $now = Carbon::now();
         switch ($periode) {
             case 'daily':
                 $baseQuery->whereDate('tgl_pengaduan', $now->toDateString());
                 break;
             case 'weekly':
-                $baseQuery->whereBetween('tgl_pengaduan', [$now->copy()->subDays(7)->startOfDay(), $now->endOfDay()]);
+                $baseQuery->whereBetween('tgl_pengaduan', [
+                    $now->copy()->subDays(7)->startOfDay(), 
+                    $now->endOfDay()
+                ]);
                 break;
             case 'monthly':
                 $baseQuery->whereMonth('tgl_pengaduan', $now->month)
@@ -71,22 +108,23 @@ class PengaduanController extends Controller
         }
     }
 
-    // ── Clone query untuk hitung badge masing-masing tab ─────────────
-    // (tidak dipengaruhi filter UI agar angka badge selalu akurat)
-    $countPengaduan  = (clone $baseQuery)->where('jenis_layanan', 'penanganan')->count();
-    $countInformasi  = (clone $baseQuery)->where('jenis_layanan', 'informasi')->count();
+    // ── Clone query untuk hitung badge (tanpa filter UI) ──
+    $countPengaduan = (clone $baseQuery)->where('jenis_layanan', 'penanganan')->count();
+    $countInformasi = (clone $baseQuery)->where('jenis_layanan', 'informasi')->count();
 
-    // ── Filter berdasarkan tab aktif ──────────────────────────────────
-    $query = (clone $baseQuery)->where('jenis_layanan', $activeTab === 'informasi' ? 'informasi' : 'penanganan');
+    // ── Filter berdasarkan tab aktif ──────────────────────
+    $query = (clone $baseQuery)->where('jenis_layanan', 
+        $activeTab === 'informasi' ? 'informasi' : 'penanganan'
+    );
 
-    // ── Filter STATUS (hanya relevan di tab pengaduan) ────────────────
+    // ── Filter STATUS (hanya relevan di tab pengaduan) ────
     $validStatus = ['pending', 'proses', 'diteruskan', 'ditolak', 'selesai'];
     if ($activeTab === 'pengaduan' && $request->filled('status') && in_array($request->status, $validStatus)) {
         $query->where('status', $request->status);
     }
 
-    // ── Filter SEKSI ──────────────────────────────────────────────────
-    if ($request->filled('seksi')) {
+    // ── Filter SEKSI (untuk super user) ───────────────────
+    if ($isSuperUser && $request->filled('seksi')) {
         $seksiFilter = $request->seksi;
         
         if ($seksiFilter === 'Doklanintalkim') {
@@ -100,22 +138,21 @@ class PengaduanController extends Controller
         }
     }
 
-    // ── Filter KEYWORD ────────────────────────────────────────────────
+    // ── Filter KEYWORD ────────────────────────────────────
     if ($request->filled('keyword')) {
-        $kw       = trim($request->keyword);
+        $kw = trim($request->keyword);
         $isTicket = preg_match('/^IMI-\d{8}-\d+$/i', $kw);
         $query->where(function ($q) use ($kw, $isTicket) {
             if ($isTicket) {
                 $q->where('nomor_tiket', strtoupper($kw));
             } else {
-                // Gunakan LOWER() agar pencarian kebal huruf besar/kecil (Universal untuk MySQL & PostgreSQL)
                 $q->whereRaw('LOWER(nama) LIKE ?', ['%' . strtolower($kw) . '%'])
                   ->orWhereRaw('LOWER(nomor_tiket) LIKE ?', ['%' . strtolower($kw) . '%']);
             }
         });
     }
 
-    // ── Eksekusi ──────────────────────────────────────────────────────
+    // ── Eksekusi ──────────────────────────────────────────
     $pengaduans = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
 
     return view('pengaduan.index', compact(
@@ -123,6 +160,7 @@ class PengaduanController extends Controller
         'activeTab',
         'countPengaduan',
         'countInformasi',
+        'isSuperUser' // kirim ke view untuk UI
     ));
 }
     // ═══════════════════════════════════════════════════════════
@@ -638,30 +676,56 @@ class PengaduanController extends Controller
         return view('pengaduan.track-public');      // standalone publik
     }
 
-    public function searchTrack(Request $request)
+
+   public function searchTrack(Request $request)
     {
         $request->validate(['nomor_tiket' => 'required|string']);
-        $pengaduan = Pengaduan::where('nomor_tiket', $request->nomor_tiket)->first();
+        
+        // ✅ Load relasi tanggapans beserta user-nya
+        $pengaduan = Pengaduan::with(['tanggapans.user'])
+                        ->where('nomor_tiket', trim($request->nomor_tiket))
+                        ->first();
 
         if (Auth::check()) {
             return view('pengaduan.track', compact('pengaduan'));
         }
         return view('pengaduan.track-public', compact('pengaduan'));
     }
-    public function updateStatus(Request $request)
+   public function updateStatus(Request $request)
 {
-    // Pengaduan_id dikirim dari hidden input di modal
     $pengaduan = Pengaduan::findOrFail($request->pengaduan_id);
-
-    // 🟢 PERBAIKAN 1: Validasi 'status_baru' dan tambahkan opsi 'ditolak'
+    $user = Auth::user();
+    
+    // 🔥 PASTIKAN ROLE DIAMBIL DARI ACCESSOR
+    $userRole = $user->role;
+    
+    // ✅ TIKKIM, KAKANIM, ADMIN LANGSUNG LOLOS
+    if (in_array($userRole, ['tikkim', 'kakanim', 'admin'])) {
+        // Skip pengecekan, langsung lanjut
+    } 
+    else {
+        $userSeksi = strtolower(trim($user->seksi ?? ''));
+        $seksiTujuan = strtolower(trim($pengaduan->seksi_tujuan));
+        
+        $grupAkses = [
+            'doklanintalkim' => ['doklanintalkim', 'doklan_izin', 'doklan_paspor'],
+            'inteldakim' => ['inteldakim', 'intel_wna', 'intel_bap'],
+        ];
+        
+        $allowedSeksi = $grupAkses[$userSeksi] ?? [$userSeksi];
+        
+        if (!in_array($seksiTujuan, $allowedSeksi)) {
+            abort(403, 'Anda tidak memiliki akses untuk mengubah status pengaduan ini.');
+        }
+    }
+    
+    // Lanjutkan dengan proses update status...
     $request->validate([
-        'status_baru'  => 'required|in:pending,proses,diteruskan,ditolak,selesai',
-        'catatan_petugas' => 'required|string|min:5', // Sesuaikan dengan name="catatan_petugas" di blade jika perlu
+        'status_baru' => 'required|in:pending,proses,diteruskan,ditolak,selesai',
+        'catatan_petugas' => 'required|string|min:5',
         'bukti_gambar' => 'nullable|image|max:2048'
     ]);
-
-    \DB::transaction(function () use ($request, $pengaduan) {
-        
+    DB::transaction(function () use ($request, $pengaduan) {
         $statusBaru = $request->status_baru;
         $catatan = $request->catatan_petugas;
 
@@ -684,7 +748,6 @@ class PengaduanController extends Controller
         }
 
         // 3. Mapping Label untuk Timeline
-        // 🟢 PERBAIKAN 2: Tambahkan map label untuk status 'ditolak'
         $statusLabels = [
             'proses'     => 'Sedang Ditindaklanjuti',
             'diteruskan' => 'Disposisi Kasi',

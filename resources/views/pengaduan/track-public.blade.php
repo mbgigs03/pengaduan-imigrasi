@@ -151,19 +151,15 @@
             @php
                 $isDitolak = $pengaduan->status === 'ditolak';
 
-                // ✅ 5 status, ditolak bercabang dari proses (bukan bagian urutan linear)
-                // Timeline linear: pending(0) → proses(1) → diteruskan(2) → selesai(3)
-                // Jika ditolak, currentStep menunjuk ke langkah 'proses' (step 1) dengan tampilan khusus
                 $statusSteps = [
                     'pending'    => 0,
                     'proses'     => 1,
                     'diteruskan' => 2,
                     'selesai'    => 3,
-                    'ditolak'    => 1, // ✅ Ditolak muncul di cabang step proses
+                    'ditolak'    => 1,
                 ];
                 $currentStep = $statusSteps[$pengaduan->status] ?? 0;
 
-                // ✅ Steps timeline linear (4 langkah utama, ditolak ditampilkan terpisah)
                 $steps = [
                     ['Menunggu Verifikasi',    'Aduan diterima, menunggu pengecekan berkas oleh petugas.'],
                     ['Sedang Diproses',        'Tim teknis sedang memproses solusi atas aduan Anda.'],
@@ -171,7 +167,6 @@
                     ['Selesai',                'Aduan telah selesai dan solusi telah diberikan.'],
                 ];
 
-                // ✅ Tambahkan 'ditolak' ke mapping warna
                 $statusColor = match($pengaduan->status) {
                     'selesai'    => 'bg-emerald-50 text-emerald-700 border-emerald-200',
                     'proses'     => 'bg-blue-50 text-blue-700 border-blue-200',
@@ -203,7 +198,7 @@
                     </div>
                 </div>
 
-                {{-- ── BANNER DITOLAK — tampil hanya jika status ditolak ── --}}
+                {{-- ── BANNER DITOLAK ── --}}
                 @if($isDitolak)
                     <div class="bg-red-50 border border-red-200 rounded-3xl p-6 flex gap-4 items-start">
                         <div class="w-10 h-10 rounded-2xl bg-red-100 flex items-center
@@ -284,7 +279,6 @@
                             <div class="space-y-6">
                                 @foreach($steps as $i => $step)
                                     @php
-                                        // ✅ Jika ditolak, step ke-1 (proses) pakai dot merah khusus
                                         $dotClass = 'timeline-dot';
                                         if ($i < $currentStep) {
                                             $dotClass .= ' done';
@@ -302,7 +296,6 @@
                                                              12.586l7.293-7.293a1 1 0 011.414 0z"/>
                                                 </svg>
                                             @elseif($i === $currentStep && $isDitolak)
-                                                {{-- ✅ Ikon X untuk status ditolak --}}
                                                 <svg class="w-2.5 h-2.5 text-white m-auto mt-0.5"
                                                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -311,7 +304,6 @@
                                             @endif
                                         </div>
                                         <div>
-                                            {{-- ✅ Label step ditolak diganti teks khusus --}}
                                             <p class="text-sm font-bold
                                                 {{ $i <= $currentStep ? ($isDitolak && $i === $currentStep ? 'text-red-700' : 'text-slate-800') : 'text-slate-300' }}">
                                                 {{ ($i === $currentStep && $isDitolak) ? 'Laporan Ditolak' : $step[0] }}
@@ -327,87 +319,94 @@
                         </div>
                     </div>
 
-                    {{-- ── TIMELINE TANGGAPAN PETUGAS ──────────────────── --}}
-                    <div class="border-t border-slate-100 p-8">
-                        <div class="flex items-center gap-3 mb-8">
-                            <div class="h-8 w-1.5 bg-blue-600 rounded-full"></div>
-                            <h3 class="text-lg font-extrabold text-slate-800 tracking-tight">
-                                Timeline & Tanggapan Petugas
-                            </h3>
+                    {{-- ── TIMELINE TANGGAPAN PETUGAS ──────────────────────── --}}
+<div class="bg-white rounded-[14px] border border-slate-100 p-5">
+    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">
+        Timeline Tanggapan Petugas
+    </p>
+
+    @if($pengaduan->tanggapans && $pengaduan->tanggapans->count() > 0)
+        <div class="space-y-0">
+            @foreach($pengaduan->tanggapans as $tl)
+                @php
+                    $isLast          = $loop->last;
+                    $isDitolakStatus = $pengaduan->status === 'ditolak' && $isLast;
+                @endphp
+
+                <div class="flex gap-4 {{ !$isLast ? 'pb-5' : '' }}">
+                    {{-- Dot + garis vertikal --}}
+                    <div class="flex flex-col items-center flex-shrink-0">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                            {{ $isDitolakStatus
+                                ? 'bg-red-500 ring-4 ring-red-100'
+                                : ($isLast ? 'bg-blue-600 ring-4 ring-blue-100' : 'bg-emerald-500') }}">
+                            @if($isLast && $isDitolakStatus)
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            @elseif(!$isLast)
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            @else
+                                <span class="w-2.5 h-2.5 rounded-full bg-white"></span>
+                            @endif
+                        </div>
+                        @if(!$isLast)
+                            <div class="w-0.5 flex-1 mt-1 bg-emerald-200"></div>
+                        @endif
+                    </div>
+
+                    {{-- Konten tanggapan --}}
+                    <div class="flex-1 pt-1 {{ !$isLast ? 'pb-1' : '' }}">
+                        <div class="flex items-center gap-2 flex-wrap mb-1">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold
+                                {{ $isDitolakStatus ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700' }}">
+                                {{ $tl->status }}
+                            </span>
+                            <span class="text-[10px] text-slate-400">
+                                {{ \Carbon\Carbon::parse($tl->created_at)->translatedFormat('d F Y, H:i') }}
+                            </span>
+                            <span class="text-[10px] text-slate-400">
+                                · {{ optional($tl->user)->name ?? 'Admin' }}
+                            </span>
+                        </div>
+                        <div class="text-sm text-slate-600 bg-slate-50 border border-slate-100
+                                    rounded-xl p-3 leading-relaxed italic">
+                            "{!! nl2br(e($tl->catatan)) !!}"
                         </div>
 
-                        @if($pengaduan->tindakLanjut)
-                            {{--
-                                ✅ PERBAIKAN UTAMA:
-                                   Dari: $pengaduan->tanggapans (relasi tidak ada)
-                                   Ke  : $pengaduan->tindakLanjut (One-to-One, sesuai model)
-                                   Karena arsitektur baru = 1 pengaduan → 1 TindakLanjut
-                            --}}
-                            @php $tl = $pengaduan->tindakLanjut; @endphp
-
-                            <div class="relative pl-10 group">
-                                {{-- Dot status --}}
-                                <div class="absolute left-0 top-1 w-6 h-6 rounded-full border-4 bg-white z-10
-                                            {{ $isDitolak ? 'border-red-500' : 'border-blue-600 ring-4 ring-blue-50' }}">
-                                </div>
-
-                                <div class="bg-slate-50/50 rounded-2xl p-6 border border-slate-100
-                                            group-hover:border-blue-200 group-hover:bg-white transition-all">
-                                    <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
-                                        <div class="flex items-center gap-2">
-                                            {{-- ✅ status dari pengaduan, bukan dari relasi tanggapan --}}
-                                            <span class="px-3 py-1 rounded-lg text-[10px] font-black
-                                                         uppercase tracking-widest text-white
-                                                         {{ $isDitolak ? 'bg-red-500' : 'bg-blue-600' }}">
-                                                {{ \App\Helpers\StatusHelper::label($pengaduan->status) }}
-                                            </span>
-                                            <span class="text-xs font-bold text-slate-400">
-                                                {{-- ✅ PERBAIKAN: updated_at dari tindakLanjut --}}
-                                                {{ $tl->updated_at->translatedFormat('d F Y • H:i') }}
-                                            </span>
-                                        </div>
-                                        <span class="text-[10px] font-bold text-slate-400 uppercase
-                                                     tracking-widest bg-slate-100 px-2 py-1 rounded">
-                                            {{-- ✅ PERBAIKAN: relasi petugas dari TindakLanjut --}}
-                                            Oleh: {{ optional($tl->petugas)->name ?? 'Admin' }}
-                                        </span>
-                                    </div>
-
-                                    {{-- ✅ PERBAIKAN: kolom catatan_petugas (bukan catatan) --}}
-                                    <div class="prose prose-sm max-w-none text-slate-600 italic leading-relaxed">
-                                        "{!! nl2br(e($tl->catatan_petugas)) !!}"
-                                    </div>
-
-                                    {{-- ✅ PERBAIKAN: Gunakan logic untuk menentukan apakah harus pakai Storage::disk atau URL langsung --}}
-                                    @if($tl->bukti_gambar)
-                                        <div class="mt-4 p-2 bg-white rounded-xl border border-slate-100 inline-block">
-                                            <p class="text-[9px] font-black text-slate-400 uppercase mb-2 ml-1">
-                                                Lampiran Bukti:
-                                            </p>
-                                            {{-- Kunci: Kita tambahkan base URL Supabase secara manual agar tidak tertukar route Laravel --}}
-                                            <img src="https://crgjblwavebvnvvdnzbk.supabase.co/storage/v1/object/public/pengaduan/{{ $tl->bukti_gambar }}"
-                                                alt="Bukti tindak lanjut"
-                                                class="h-32 w-auto rounded-lg object-cover shadow-sm">
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-
-                        @else
-                            <div class="text-center py-12">
-                                <div class="w-16 h-16 bg-slate-50 text-slate-300 rounded-full
-                                            flex items-center justify-center mx-auto mb-4">
-                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                              stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                </div>
-                                <p class="text-slate-500 font-medium italic">
-                                    Belum ada tanggapan resmi dari petugas.
-                                </p>
+                        {{-- Lampiran bukti jika ada --}}
+                        @if(!empty($tl->bukti_tanggapan))
+                            <div class="mt-2 p-2 bg-white rounded-xl border border-slate-100 inline-block">
+                                <p class="text-[9px] font-black text-slate-400 uppercase mb-2 ml-1">Lampiran Bukti:</p>
+                                <a href="https://crgjblwavebvnvvdnzbk.supabase.co/storage/v1/object/public/pengaduan/{{ $tl->bukti_tanggapan }}"
+                                   target="_blank">
+                                    <img src="https://crgjblwavebvnvvdnzbk.supabase.co/storage/v1/object/public/pengaduan/{{ $tl->bukti_tanggapan }}"
+                                         alt="Bukti" class="h-28 w-auto rounded-lg object-cover hover:opacity-90 transition shadow-sm">
+                                </a>
                             </div>
                         @endif
                     </div>
+                </div>
+            @endforeach
+        </div>
+    @else
+        <div class="flex items-center gap-3 p-4 bg-slate-50
+                    border border-dashed border-slate-200 rounded-xl">
+            <svg class="w-4 h-4 text-slate-300 flex-shrink-0" fill="none"
+                 stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863
+                         9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574
+                         3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+            <p class="text-sm text-slate-400 italic">
+                Belum ada tanggapan dari petugas.
+            </p>
+        </div>
+    @endif
+</div>
 
                     {{-- FOOTER --}}
                     <div class="px-8 py-4 bg-slate-50 border-t border-slate-100
@@ -447,11 +446,16 @@
     <script>
         const form = document.getElementById('trackForm');
         const btn  = document.getElementById('btnSubmit');
-        form.addEventListener('submit', function () {
-            btn.classList.add('btn-loading');
-            btn.disabled = true;
-        });
-        window.onload = () => document.getElementById('nomor_tiket').focus();
+        if (form) {
+            form.addEventListener('submit', function () {
+                btn.classList.add('btn-loading');
+                btn.disabled = true;
+            });
+        }
+        window.onload = () => {
+            const input = document.getElementById('nomor_tiket');
+            if (input) input.focus();
+        };
     </script>
 </body>
 </html>
