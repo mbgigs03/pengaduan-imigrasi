@@ -325,84 +325,79 @@
         Timeline Tanggapan Petugas
     </p>
 
-    @if($pengaduan->tanggapans && $pengaduan->tanggapans->count() > 0)
-        <div class="space-y-0">
-            @foreach($pengaduan->tanggapans as $tl)
-                @php
-                    $isLast          = $loop->last;
-                    $isDitolakStatus = $pengaduan->status === 'ditolak' && $isLast;
-                @endphp
+    @if($pengaduan->tindakLanjut)
+        @php 
+            $tl = $pengaduan->tindakLanjut; 
+            $isDitolak = $pengaduan->status === 'ditolak';
+        @endphp
 
-                <div class="flex gap-4 {{ !$isLast ? 'pb-5' : '' }}">
-                    {{-- Dot + garis vertikal --}}
-                    <div class="flex flex-col items-center flex-shrink-0">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-                            {{ $isDitolakStatus
-                                ? 'bg-red-500 ring-4 ring-red-100'
-                                : ($isLast ? 'bg-blue-600 ring-4 ring-blue-100' : 'bg-emerald-500') }}">
-                            @if($isLast && $isDitolakStatus)
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            @elseif(!$isLast)
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                                </svg>
-                            @else
-                                <span class="w-2.5 h-2.5 rounded-full bg-white"></span>
-                            @endif
-                        </div>
-                        @if(!$isLast)
-                            <div class="w-0.5 flex-1 mt-1 bg-emerald-200"></div>
-                        @endif
+        <div class="relative pl-10 group">
+            {{-- Dot status --}}
+            <div class="absolute left-0 top-1 w-6 h-6 rounded-full border-4 bg-white z-10
+                        {{ $isDitolak ? 'border-red-500' : 'border-blue-600 ring-4 ring-blue-50' }}">
+            </div>
+
+            <div class="bg-slate-50/50 rounded-2xl p-6 border border-slate-100
+                        group-hover:border-blue-200 group-hover:bg-white transition-all">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="px-3 py-1 rounded-lg text-[10px] font-black
+                                     uppercase tracking-widest text-white
+                                     {{ $isDitolak ? 'bg-red-500' : 'bg-blue-600' }}">
+                            {{ \App\Helpers\StatusHelper::label($pengaduan->status) }}
+                        </span>
+                        <span class="text-xs font-bold text-slate-400">
+                            {{ $tl->updated_at->translatedFormat('d F Y • H:i') }}
+                        </span>
                     </div>
-
-                    {{-- Konten tanggapan --}}
-                    <div class="flex-1 pt-1 {{ !$isLast ? 'pb-1' : '' }}">
-                        <div class="flex items-center gap-2 flex-wrap mb-1">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold
-                                {{ $isDitolakStatus ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700' }}">
-                                {{ $tl->status }}
-                            </span>
-                            <span class="text-[10px] text-slate-400">
-                                {{ \Carbon\Carbon::parse($tl->created_at)->translatedFormat('d F Y, H:i') }}
-                            </span>
-                            <span class="text-[10px] text-slate-400">
-                                · {{ optional($tl->user)->name ?? 'Admin' }}
-                            </span>
-                        </div>
-                        <div class="text-sm text-slate-600 bg-slate-50 border border-slate-100
-                                    rounded-xl p-3 leading-relaxed italic">
-                            "{!! nl2br(e($tl->catatan)) !!}"
-                        </div>
-
-                        {{-- Lampiran bukti jika ada --}}
-                        @if(!empty($tl->bukti_tanggapan))
-                            <div class="mt-2 p-2 bg-white rounded-xl border border-slate-100 inline-block">
-                                <p class="text-[9px] font-black text-slate-400 uppercase mb-2 ml-1">Lampiran Bukti:</p>
-                                <a href="https://crgjblwavebvnvvdnzbk.supabase.co/storage/v1/object/public/pengaduan/{{ $tl->bukti_tanggapan }}"
-                                   target="_blank">
-                                    <img src="https://crgjblwavebvnvvdnzbk.supabase.co/storage/v1/object/public/pengaduan/{{ $tl->bukti_tanggapan }}"
-                                         alt="Bukti" class="h-28 w-auto rounded-lg object-cover hover:opacity-90 transition shadow-sm">
-                                </a>
-                            </div>
-                        @endif
-                    </div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase
+                                 tracking-widest bg-slate-100 px-2 py-1 rounded">
+                        Oleh: {{ optional($tl->petugas)->name ?? 'Admin' }}
+                    </span>
                 </div>
-            @endforeach
+
+                <div class="prose prose-sm max-w-none text-slate-600 italic leading-relaxed">
+                    "{!! nl2br(e($tl->catatan_petugas)) !!}"
+                </div>
+
+                @if($tl->bukti_gambar)
+                    <div class="mt-4 p-2 bg-white rounded-xl border border-slate-100 inline-block"
+                        x-data="lightbox(['https://crgjblwavebvnvvdnzbk.supabase.co/storage/v1/object/public/pengaduan/{{ $tl->bukti_gambar }}'])">
+                        
+                        <p class="text-[9px] font-black text-slate-400 uppercase mb-2 ml-1">
+                            Lampiran Bukti:
+                        </p>
+                        
+                        <button type="button" @click="open(0)" class="focus:outline-none">
+                            <img src="https://crgjblwavebvnvvdnzbk.supabase.co/storage/v1/object/public/pengaduan/{{ $tl->bukti_gambar }}"
+                                alt="Bukti tindak lanjut"
+                                class="h-32 w-auto rounded-lg object-cover shadow-sm cursor-pointer hover:opacity-90 transition">
+                        </button>
+
+                        <div x-show="visible"
+                            class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+                            style="display:none;"
+                            @keydown.escape.window="close()">
+                            <div class="absolute inset-0" @click="close()"></div>
+                            <div class="relative z-10 max-w-4xl w-full flex justify-center">
+                                <img :src="images[current]" class="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl">
+                                <button type="button" @click="close()" class="absolute -top-12 right-0 text-white font-bold bg-white/10 hover:bg-white/25 px-4 py-2 rounded-lg transition backdrop-blur-sm">
+                                    TUTUP
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
         </div>
+
     @else
-        <div class="flex items-center gap-3 p-4 bg-slate-50
-                    border border-dashed border-slate-200 rounded-xl">
-            <svg class="w-4 h-4 text-slate-300 flex-shrink-0" fill="none"
-                 stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863
-                         9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574
-                         3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+        <div class="flex items-center gap-3 p-4 bg-slate-50 border border-dashed border-slate-200 rounded-xl">
+            <svg class="w-4 h-4 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
             </svg>
             <p class="text-sm text-slate-400 italic">
-                Belum ada tanggapan dari petugas.
+                Belum ada tanggapan resmi dari petugas.
             </p>
         </div>
     @endif
@@ -446,16 +441,30 @@
     <script>
         const form = document.getElementById('trackForm');
         const btn  = document.getElementById('btnSubmit');
+
+        // Pengecekan aman dari teman Anda
         if (form) {
             form.addEventListener('submit', function () {
                 btn.classList.add('btn-loading');
                 btn.disabled = true;
             });
         }
+        
         window.onload = () => {
             const input = document.getElementById('nomor_tiket');
             if (input) input.focus();
         };
+
+        // Fungsi Lightbox dari Anda
+        function lightbox(images) {
+            return {
+                images,
+                visible: false,
+                current: 0,
+                open(index) { this.current = index; this.visible = true; document.body.style.overflow = 'hidden'; },
+                close() { this.visible = false; document.body.style.overflow = ''; }
+            }
+        }
     </script>
 </body>
 </html>
