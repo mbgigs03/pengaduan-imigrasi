@@ -291,14 +291,14 @@ function openModalTL(
 
     if (tlId) {
 
-        form.action = `/tindak-lanjut/${tlId}`;
+        form.action = `{{ url('tindak-lanjut') }}/${tlId}`;
 
         document.getElementById('tl-method').value =
             'PATCH';
 
     } else {
 
-        form.action = `/tindak-lanjut`;
+        form.action = `{{ url('tindak-lanjut') }}`;
 
         document.getElementById('tl-method').value =
             'POST';
