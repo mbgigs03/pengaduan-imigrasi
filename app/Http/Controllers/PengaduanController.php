@@ -304,151 +304,185 @@ class PengaduanController extends Controller
     //      ke TemplateProcessor agar .docx-pun aman.
     // ═══════════════════════════════════════════════════════════
     private function generateAndUploadPdf(Pengaduan $pengaduan): string
-    {
-        $tmpDir = storage_path('app/tmp');
-        if (!is_dir($tmpDir)) {
-            mkdir($tmpDir, 0755, true);
+{
+    $tmpDir = storage_path('app/tmp');
+    if (!is_dir($tmpDir)) {
+        mkdir($tmpDir, 0755, true);
+    }
+
+    $slug = Str::slug($pengaduan->nomor_tiket) . '-' . Str::random(4);
+    $docxTmpPath = $tmpDir . DIRECTORY_SEPARATOR . $slug . '.docx';
+    $pdfTmpPath = $tmpDir . DIRECTORY_SEPARATOR . $slug . '.pdf';
+
+    try {
+        Log::info('Mulai generate PDF', ['tiket' => $pengaduan->nomor_tiket]);
+
+        // Prepare values
+        $values = $this->preparePdfValues($pengaduan);
+
+        // Generate DOCX
+        $templatePath = storage_path('app/templates/LAPORAN_PENGADUAN.docx');
+        if (!file_exists($templatePath)) {
+            Log::error('Template DOCX tidak ditemukan', ['path' => $templatePath]);
+            throw new \RuntimeException("Template tidak ditemukan di: " . $templatePath);
         }
 
-        $slug        = Str::slug($pengaduan->nomor_tiket) . '-' . Str::random(4);
-        $docxTmpPath = $tmpDir . DIRECTORY_SEPARATOR . $slug . '.docx';
-        $pdfTmpPath  = $tmpDir . DIRECTORY_SEPARATOR . $slug . '.pdf';
+        $processor = new TemplateProcessor($templatePath);
+        foreach ($values as $key => $val) {
+            $processor->setValue($key, $val);
+        }
+        $processor->saveAs($docxTmpPath);
+        Log::info('DOCX berhasil dibuat', ['path' => $docxTmpPath]);
 
+        // Generate HTML & PDF
+        $htmlContent = $this->buildPdfHtml($pengaduan, $values);
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', false);
+        $options->set('defaultFont', 'DejaVu Sans');
+        $options->set('defaultPaperSize', 'A4');
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($htmlContent, 'UTF-8');
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $pdfOutput = $dompdf->output();
+        if (empty($pdfOutput)) {
+            throw new \RuntimeException('DomPDF menghasilkan output kosong.');
+        }
+        file_put_contents($pdfTmpPath, $pdfOutput);
+        Log::info('PDF berhasil dibuat', ['path' => $pdfTmpPath, 'size' => filesize($pdfTmpPath)]);
+
+        // Upload ke Supabase
+        $pdfStoragePath = "pengaduan/{$pengaduan->nomor_tiket}/laporan-pengaduan.pdf";
+        $docxStoragePath = "pengaduan/{$pengaduan->nomor_tiket}/laporan-pengaduan.docx";
+
+        // Cek koneksi Supabase sebelum upload
         try {
-            // ─── 1. Siapkan nilai placeholder ─────────────────
-            $values = [
-                'tgl_pengaduan' => Carbon::parse($pengaduan->tgl_pengaduan)
-                                         ->translatedFormat('d F Y'),
-                'nama'          => $this->sanitizeForDocx($pengaduan->nama),
-                'jenis_kelamin' => '-',
-                'alamat'        => $this->sanitizeForDocx($pengaduan->alamat ?? '-'),
-                'no_wa'         => $this->sanitizeForDocx($pengaduan->whatsapp),
-                'isi_aduan'     => $this->sanitizeForDocx($pengaduan->aduan),
-                'seksi'         => $this->formatSeksi($pengaduan->seksi_tujuan),
-                'tindak_lanjut' => Carbon::now()->translatedFormat('d F Y'),
-                'nomor_tiket'   => $pengaduan->nomor_tiket,
-            ];
-
-            // ─── 2. Isi template .docx → simpan sebagai arsip ─
-            $templatePath = storage_path('app/templates/LAPORAN_PENGADUAN.docx');
-            if (!file_exists($templatePath)) {
-                throw new \RuntimeException("Template tidak ditemukan di: " . $templatePath);
-            }
-
-            // dd(file_exists($templatePath));
-
-            $processor = new TemplateProcessor($templatePath);
-            foreach ($values as $key => $val) {
-                $processor->setValue($key, $val);
-            }
-            $processor->saveAs($docxTmpPath);
-
-            // ─── 3. Build HTML langsung dari data (SKIP IOFactory::load) ─
-            $htmlContent = $this->buildPdfHtml($pengaduan, $values);
-
-            // ─── 4. Render HTML → PDF via DomPDF ──────────────
-            $options = new Options();
-            $options->set('isHtml5ParserEnabled', true);
-            $options->set('isRemoteEnabled',      false);
-            $options->set('defaultFont',          'DejaVu Sans');
-            $options->set('defaultPaperSize',     'A4');
-            $options->set('chroot',               $tmpDir);
-            $options->set('chroot', public_path());
-
-
-            $dompdf = new Dompdf($options);
-            $dompdf->loadHtml($htmlContent, 'UTF-8');
-            $dompdf->setPaper('A4', 'portrait');
-            $dompdf->render();
-
-            $pdfOutput = $dompdf->output();
-            if (empty($pdfOutput)) {
-                throw new \RuntimeException('DomPDF menghasilkan output kosong.');
-            }
-
-            file_put_contents($pdfTmpPath, $pdfOutput);
-
-            // ─── 5. Upload PDF ke Supabase Storage ────────────
-            $pdfStoragePath  = "pengaduan/{$pengaduan->nomor_tiket}/laporan-pengaduan.pdf";
-            $docxStoragePath = "pengaduan/{$pengaduan->nomor_tiket}/laporan-pengaduan.docx";
-
             Storage::disk('supabase')->put(
                 $pdfStoragePath,
                 file_get_contents($pdfTmpPath),
                 ['visibility' => 'public', 'ContentType' => 'application/pdf']
             );
+            Log::info('PDF berhasil diupload ke Supabase', ['path' => $pdfStoragePath]);
+        } catch (\Exception $e) {
+            Log::error('Gagal upload PDF ke Supabase', [
+                'error' => $e->getMessage(),
+                'tiket' => $pengaduan->nomor_tiket
+            ]);
+            throw $e; 
+        }
 
-            Storage::disk('supabase')->put(
-                $docxStoragePath,
-                file_get_contents($docxTmpPath),
-                [
-                    'visibility'  => 'public',
-                    'ContentType' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                ]
-            );
+        Storage::disk('supabase')->put(
+            $docxStoragePath,
+            file_get_contents($docxTmpPath),
+            [
+                'visibility' => 'public',
+                'ContentType' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ]
+        );
+        Log::info('DOCX berhasil diupload ke Supabase', ['path' => $docxStoragePath]);
 
-            // ─── 6. Simpan URL publik ke kolom pdf_url ─────────
-            $publicUrl = rtrim(env('SUPABASE_URL'), '/') . '/' . $pdfStoragePath;
-            $pengaduan->update(['pdf_url' => $publicUrl]);
+        // ═══════════════════════════════════════════════════════════
+        // FIX URL: Ekstrak hanya domain bersih dari .env 
+        // ═══════════════════════════════════════════════════════════
+        $rawUrl = env('SUPABASE_URL');
+        $parsedUrl = parse_url($rawUrl);
+        $scheme = $parsedUrl['scheme'] ?? 'https';
+        $host = $parsedUrl['host'] ?? 'crgjblwavebvnvvdnzbk.supabase.co';
+        $pureDomain = $scheme . '://' . $host;
+        
+        // Disusun pas tanpa menduplikasi kata 'pengaduan/'
+        $publicUrl = $pureDomain . '/storage/v1/object/public/pengaduan/' . $pdfStoragePath;
+        
+        $pengaduan->update(['pdf_url' => $publicUrl]);
+        Log::info('PDF URL berhasil disimpan', ['url' => $publicUrl]);
 
-            return $pdfStoragePath;
+        return $pdfStoragePath;
 
-        } finally {
-            // Hapus tmp SELALU — sukses maupun gagal di tengah jalan
-            foreach ([$docxTmpPath, $pdfTmpPath] as $f) {
-                if (file_exists($f)) {
-                    @unlink($f);
-                }
+    } catch (\Throwable $e) {
+        Log::error('Generate & Upload PDF GAGAL', [
+            'tiket' => $pengaduan->nomor_tiket,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        throw $e;
+    } 
+    finally {
+        // Bersihkan temporary files (Selalu dieksekusi)
+        foreach ([$docxTmpPath, $pdfTmpPath] as $f) {
+            if (file_exists($f)) {
+                @unlink($f);
             }
         }
+    }
+}
+
+    private function preparePdfValues(Pengaduan $pengaduan): array
+    {
+        $seksiFormatted = $this->formatSeksi($pengaduan->seksi_tujuan);
+        
+        // Logika untuk membedakan Kepala Seksi dan Kepala Subag
+        $labelJabatan = "Kepala Seksi";
+        if (str_contains(strtolower($seksiFormatted), 'tata usaha')) {
+            $labelJabatan = "Kepala Sub Bagian";
+        }
+        
+        return [
+            'tgl_pengaduan' => Carbon::parse($pengaduan->tgl_pengaduan)
+                                    ->translatedFormat('d F Y'),
+            'nama'          => $this->sanitizeForDocx($pengaduan->nama),
+            'jenis_kelamin' => '-',
+            'alamat'        => $this->sanitizeForDocx($pengaduan->alamat ?? '-'),
+            'no_wa'         => $this->sanitizeForDocx($pengaduan->whatsapp),
+            'isi_aduan'     => $this->sanitizeForDocx($pengaduan->aduan),
+            'seksi'         => $seksiFormatted,
+            'tindak_lanjut' => Carbon::now()->translatedFormat('d F Y'),
+            'nomor_tiket'   => $pengaduan->nomor_tiket,
+            'label_jabatan' => $labelJabatan,
+            'sasaran_teks'  => $this->getSasaranTeks($pengaduan->seksi_tujuan)
+        ];
+    }
+
+    private function getSasaranTeks(string $jenis): string
+    {
+        $mappingSasaran = [
+            'Tikkim'        => 'Pelayanan Paspor',
+            'Doklan_Paspor' => 'Dokumen Perjalanan',
+            'Doklan_Izin'   => 'Pelayanan Izin Tinggal [WNA]',
+            'Intel_WNA'     => 'Pengawasan Orang Asing [WNA]',
+            'Intel_BAP'     => 'Alur BAP',
+            'Tata Usaha'    => 'Sarana Prasarana',
+        ];
+        
+        return $mappingSasaran[$jenis] ?? $jenis;
     }
 
     private function buildPdfHtml(Pengaduan $pengaduan, array $values): string
     {
-        
         $e = fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-
-
+        
         $tgl    = $e($values['tgl_pengaduan']);
         $nama   = $e($values['nama']);
         $alamat = $e($values['alamat']);
         $noWa   = $e($values['no_wa']);
-        $aduan  = nl2br($e($values['isi_aduan'])); // nl2br menjaga enter tetap ada
+        $aduan  = nl2br($e($values['isi_aduan']));
         $seksi  = $e($values['seksi']);
         $tiket  = $e($values['nomor_tiket']);
-        $tindak = $e($values['tindak_lanjut']);
-        // Logika untuk membedakan Kepala Seksi dan Kepala Subag
-        $labelJabatan = "Kepala Seksi";
-        if (str_contains(strtolower($seksi), 'tata usaha')) {
-            $labelJabatan = "Kepala Sub Bagian";
+        $sasaran = $e($values['sasaran_teks']);
+        $labelJabatan = $e($values['label_jabatan']);
+        
+        // Path logo dengan fallback
+        $logoPath = public_path('images/logo-imigrasi.png');
+        if (!file_exists($logoPath)) {
+            Log::warning('Logo tidak ditemukan di: ' . $logoPath);
+            $logoHtml = '<div style="font-size:24px;font-weight:bold;">KANIM MADIUN</div>';
+        } else {
+            $logoBase64 = base64_encode(file_get_contents($logoPath));
+            $logoHtml = '<img src="data:image/png;base64,' . $logoBase64 . '" alt="Logo Imigrasi">';
         }
         
-        $logoPath = public_path('images/logo-imigrasi.png');
-
-        $logoBase64 = base64_encode(file_get_contents($logoPath));
-        $logoHtml = '<img src="data:image/png;base64,' . $logoBase64 . '" alt="Logo Imigrasi">';
-
-        // Di dalam method buildPdfHtml...
-
-        $jenis = $pengaduan->seksi_tujuan; // Ambil raw value dari DB
-
-        $mappingSasaran = [
-            'Tikkim'        => 'Pelayanan Paspor ',
-            'Doklan_Paspor' => 'Dokumen Perjalanan ',
-            'Doklan_Izin'   => 'Pelayanan Izin Tinggal [WNA] ',
-            'Intel_WNA'     => 'Pengawasan Orang Asing [WNA] ',
-            'Intel_BAP'     => 'Alur BAP ',
-            'Tata Usaha'    => 'Sarana Prasarana ',
-        ];
-
-        $sasaranTeks = $mappingSasaran[$jenis] ?? $jenis;
-
-        Log::info('Logo exists?', [
-            'path' => $logoPath,
-            'exists' => file_exists($logoPath),
-            'readable' => is_readable($logoPath)
-        ]);
-
         return <<<HTML
         <!DOCTYPE html>
         <html lang="id">
@@ -456,18 +490,13 @@ class PengaduanController extends Controller
         <meta charset="UTF-8">
         <style>
         @page { margin: 20mm 25mm; size: A4 portrait; }
-
         body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 11pt; /* Standar surat dinas biasanya 11pt - 12pt */
+            font-size: 11pt;
             color: #000;
             line-height: 1.2;
         }
-        .b{
-            font-weight: bold;
-            font-size: 12pt;
-        }
-
+        .b { font-weight: bold; font-size: 12pt; }
         .kop {
             display: table;
             width: 100%;
@@ -475,53 +504,43 @@ class PengaduanController extends Controller
             margin-bottom: 12px;
             padding-bottom: 6px;
         }
-
         .kop-logo {
             display: table-cell;
             width: 90px;
             vertical-align: middle;
             text-align: center;
         }
-
         .kop-logo img {
             max-width: 90px;
             max-height: 90px;
         }
-
         .kop-teks {
             display: table-cell;
             vertical-align: middle;
             text-align: center;
         }
-
-        .kop-teks .instansi {font-size: 10pt; margin-bottom: 2px; }
+        .kop-teks .instansi { font-size: 10pt; margin-bottom: 2px; }
         .kop-teks .alamat { font-size: 9pt; }
-
         .judul {
             text-align: center;
             margin: 15px 0;
         }
-        .judul h1 { font-size: 14pt; margin: 0; text-decoration: underline; }
-        .judul h2 { font-size: 12pt; margin: 0; }
-
+        .judul h3 { font-size: 14pt; margin: 0; text-decoration: underline; }
         .dt { width: 100%; border-collapse: collapse; margin-top: 10px; }
         .dt td { padding: 5px; vertical-align: top; }
         .lbl { width: 35%; }
         .sep { width: 10px; }
-
         .kotak-aduan {
             border: 1px solid #000;
             width: 100%;
             padding: 12px;
             margin-top: 8px;
             box-sizing: border-box;
-            min-height: 120px; /* lebih realistis */
+            min-height: 120px;
         }
-
         .ttd { margin-top: 40px; }
         .ttd-table { width: 100%; }
         .ttd-table td { width: 50%; text-align: center; }
-
         .garis-nama {
             margin-top: 60px;
             font-weight: bold;
@@ -529,13 +548,9 @@ class PengaduanController extends Controller
         }
         </style>
         </head>
-
         <body>
-
         <div class="kop">
-            <div class="kop-logo">
-                {$logoHtml}
-            </div>
+            <div class="kop-logo">{$logoHtml}</div>
             <div class="kop-teks">
                 <div class="instansi">KEMENTERIAN IMIGRASI DAN PEMASYARAKATAN REPUBLIK INDONESIA</div>
                 <div class="instansi">DIREKTORAT JENDERAL IMIGRASI</div>
@@ -545,34 +560,27 @@ class PengaduanController extends Controller
                 <div class="alamat">Laman : madiun.imigrasi.go.id, Pos-el : kanim_madiun@imigrasi.go.id</div>
             </div>
         </div>
-
         <div class="judul">
             <h3>FORMULIR PENGADUAN <br>LAYANAN KEIMIGRASIAN</h3>
         </div>
-
         <div style="margin-bottom: 15px;">
             Yth. Kepala Kantor Imigrasi Kelas II Non TPI Madiun<br>
             Di Tempat
         </div>
-
         <table class="dt">
             <tr><td class="lbl">Nomor Pengaduan</td><td class="sep">:</td><td>{$tiket}</td></tr>
             <tr><td class="lbl">Tanggal Pengaduan</td><td class="sep">:</td><td>{$tgl}</td></tr>
             <tr><td class="lbl">Nama Lengkap Pelapor</td><td class="sep">:</td><td>{$nama}</td></tr>
             <tr><td class="lbl">Alamat</td><td class="sep">:</td><td>{$alamat}</td></tr>
             <tr><td class="lbl">Nomor WhatsApp</td><td class="sep">:</td><td>{$noWa}</td></tr>
-            
-            <tr><td class="lbl">Sasaran Pengaduan</td><td class="sep">:</td><td><strong>{$sasaranTeks}</strong></td></tr>
+            <tr><td class="lbl">Sasaran Pengaduan</td><td class="sep">:</td><td><strong>{$sasaran}</strong></td></tr>
             <tr><td class="lbl">Deskripsi Pengaduan</td><td class="sep">:</td></tr>
             <tr>
                 <td colspan="3">
-                    <div class="kotak-aduan">
-                        {$aduan}
-                    </div>
+                    <div class="kotak-aduan">{$aduan}</div>
                 </td>
             </tr>
         </table>
-
         <div class="ttd">
             <table class="ttd-table">
                 <tr>
@@ -585,7 +593,6 @@ class PengaduanController extends Controller
                 </tr>
             </table>
         </div>
-
         </body>
         </html>
         HTML;
@@ -644,16 +651,53 @@ class PengaduanController extends Controller
     {
         $pengaduan = Pengaduan::where('nomor_tiket', $nomorTiket)->firstOrFail();
 
-        if (!$pengaduan->pdf_url) {
+        // 🔥 PRIORITAS UTAMA: Cek apakah PDF sudah tersedia di Supabase
+        if (!empty($pengaduan->pdf_url)) {
+            // Cek apakah URL valid dan file benar-benar ada
             try {
-                $this->generateAndUploadPdf($pengaduan);
-                $pengaduan->refresh();
+                $headers = get_headers($pengaduan->pdf_url);
+                if ($headers && strpos($headers[0], '200 OK') !== false) {
+                    return redirect($pengaduan->pdf_url);
+                }
             } catch (\Throwable $e) {
-                abort(500, 'PDF tidak tersedia: ' . $e->getMessage());
+                Log::warning('PDF URL tidak dapat diakses, akan fallback ke generate ulang', [
+                    'tiket' => $nomorTiket,
+                    'url' => $pengaduan->pdf_url,
+                    'error' => $e->getMessage()
+                ]);
             }
         }
 
-        return redirect($pengaduan->pdf_url);
+        // 🟡 FALLBACK OPTION: Generate PDF on-the-fly tanpa upload
+        try {
+            $htmlContent = $this->buildPdfHtml($pengaduan, $this->preparePdfValues($pengaduan));
+            
+            $options = new Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', false);
+            $options->set('defaultFont', 'DejaVu Sans');
+            $options->set('defaultPaperSize', 'A4');
+            
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($htmlContent, 'UTF-8');
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+            
+            // Stream langsung ke browser tanpa menyimpan file
+            return $dompdf->stream("LAPORAN_PENGADUAN_{$pengaduan->nomor_tiket}.pdf", [
+                'Attachment' => true
+            ]);
+            
+        } catch (\Throwable $e) {
+            Log::error('Gagal generate PDF fallback', [
+                'tiket' => $nomorTiket,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // 🛑 Jika semua gagal, tampilkan error yang informatif
+            abort(500, 'PDF tidak dapat dihasilkan. Silakan hubungi administrator.');
+        }
     }
 
     // ─── Method lainnya ────────────────────────────────────────
